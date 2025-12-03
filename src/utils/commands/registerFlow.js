@@ -1,0 +1,66 @@
+const { createErrorEmbed } = require('../embeds/embedBuilder');
+const { ensureLeaderDiscordRole } = require('../user/leaderRoleAssigner');
+
+/**
+ * Validate inputs for /register command
+ * @param {import('discord.js').ChatInputCommandInteraction} interaction
+ * @returns {{ok: true} | {ok: false, container: any}}
+ */
+function validateRegisterInputs(interaction) {
+  const name = interaction.options.getString('name');
+  const leaderUser = interaction.options.getUser('leader');
+
+  if (!name || name.trim().length === 0) {
+    return {
+      ok: false,
+      container: createErrorEmbed('Invalid Name', 'Guild name cannot be empty.')
+    };
+  }
+
+  if (!leaderUser) {
+    return {
+      ok: false,
+      container: createErrorEmbed('Invalid Leader', 'You need to select a valid user as leader.')
+    };
+  }
+
+  return { ok: true };
+}
+
+/**
+ * Build guild registration payload from interaction
+ */
+function buildGuildRegistrationData(interaction) {
+  const name = interaction.options.getString('name');
+  const leaderUser = interaction.options.getUser('leader');
+  return {
+    name,
+    leader: leaderUser.username,
+    leaderId: leaderUser.id,
+    registeredBy: interaction.user.id,
+    discordGuildId: interaction.guild.id
+  };
+}
+
+/**
+ * Post-processing after successful registration:
+ * - Log event (best-effort)
+ * - Ensure Leader role assignment
+ */
+async function postRegistration(interaction, guild, leaderUserId) {
+  try {
+    const { logGuildRegistered } = require('../misc/logEvents');
+    await logGuildRegistered(guild, interaction.guild, interaction.user.id);
+  } catch (_) {}
+
+  try {
+    await ensureLeaderDiscordRole(interaction.guild, leaderUserId);
+  } catch (_) {}
+}
+
+module.exports = {
+  validateRegisterInputs,
+  buildGuildRegistrationData,
+  postRegistration,
+};
+

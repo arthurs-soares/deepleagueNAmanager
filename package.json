@@ -1,0 +1,40 @@
+{
+  "name": "guild-manager-bot",
+  "version": "1.0.0",
+  "description": "Discord bot for managing guilds with war tracking, rosters, and administrative tools",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js",
+    "deploy": "node src/utils/system/deployCommands.js",
+    "deploy:clear": "node src/utils/system/deployCommands.js --clear",
+    "test:db": "node src/utils/system/testDatabase.js",
+    "test": "node tests/runTests.js",
+    "test:imports": "node tests/simpleImportTest.js",
+    "lint": "eslint . --ext .js",
+    "lint:fix": "eslint . --ext .js --fix"
+  },
+  "keywords": [
+    "discord",
+    "bot",
+    "discord.js",
+    "guild-management",
+    "war-tracking",
+    "mongodb",
+    "moderation"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@napi-rs/canvas": "^0.1.78",
+    "discord.js": "^14.22.1",
+    "dotenv": "^16.3.1",
+    "mongoose": "^8.17.1"
+  },
+  "devDependencies": {
+    "eslint": "^8.57.0",
+    "nodemon": "^3.0.2"
+  },
+  "engines": {
+    "node": ">=18.17.0"
+  }
+}

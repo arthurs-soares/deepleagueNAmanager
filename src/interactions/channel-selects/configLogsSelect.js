@@ -1,0 +1,29 @@
+const { getOrCreateServerSettings } = require('../../utils/system/serverSettings');
+const { MessageFlags } = require('discord.js');
+
+/**
+ * Receive channel selection for logs and save
+ * CustomId: config:channels:selectLogs
+ */
+async function handle(interaction) {
+  try {
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+
+    const channelId = interaction.values?.[0];
+    if (!channelId) return interaction.editReply({ content: 'Action cancelled.' });
+
+    const cfg = await getOrCreateServerSettings(interaction.guild.id);
+    cfg.logsChannelId = channelId;
+    await cfg.save();
+
+    return interaction.editReply({ content: `✅ Logs channel set to <#${channelId}>.` });
+  } catch (error) {
+    console.error('Error saving logs channel:', error);
+    const msg = { content: '❌ Could not save the logs channel.', flags: MessageFlags.Ephemeral };
+    if (interaction.deferred || interaction.replied) return interaction.followUp(msg);
+    return interaction.reply(msg);
+  }
+}
+
+module.exports = { handle };
+
