@@ -1,4 +1,11 @@
-const { ContainerBuilder, TextDisplayBuilder, SectionBuilder, SeparatorBuilder } = require('@discordjs/builders');
+const {
+  ContainerBuilder,
+  TextDisplayBuilder,
+  SectionBuilder,
+  SeparatorBuilder,
+  MediaGalleryBuilder,
+  MediaGalleryItemBuilder
+} = require('@discordjs/builders');
 const { colors, emojis } = require('../../config/botConfig');
 const { normalizeRoleToPortuguese } = require('../core/roleMapping');
 
@@ -48,8 +55,8 @@ async function buildGuildDetailDisplayComponents(guild, _discordGuild) {
   const leadershipSection = new SectionBuilder()
     .addTextDisplayComponents(leaderText, coLeaderText);
 
-  // SectionBuilder requires an accessory; always set a thumbnail accessory
-  const accessoryThumbnailUrl = guild.iconUrl || guild.bannerUrl ||
+  // SectionBuilder requires an accessory; use iconUrl for thumbnail
+  const accessoryThumbnailUrl = guild.iconUrl ||
     'https://cdn.discordapp.com/embed/avatars/0.png';
   leadershipSection.setThumbnailAccessory(thumbnail =>
     thumbnail
@@ -87,6 +94,16 @@ async function buildGuildDetailDisplayComponents(guild, _discordGuild) {
     .setContent(`**${emojis.subRoster} Sub Roster**\n${formatUserList(subRoster)}`);
   container.addTextDisplayComponents(subRosterText);
 
+  // Banner image at the bottom if configured
+  if (guild.bannerUrl) {
+    const bannerGallery = new MediaGalleryBuilder()
+      .addItems(
+        new MediaGalleryItemBuilder()
+          .setURL(guild.bannerUrl)
+          .setDescription(`${guild.name} banner`)
+      );
+    container.addMediaGalleryComponents(bannerGallery);
+  }
 
   return container;
 }

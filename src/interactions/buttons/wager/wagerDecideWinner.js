@@ -85,7 +85,7 @@ async function handle(interaction) {
       } catch (_) {}
     }
 
-    return interaction.editReply({ content: '✅ Result applied and ELO updated.' });
+    return interaction.editReply({ content: '✅ Result applied.' });
   } catch (error) {
     LoggerService.error('Error in button wager:decideWinner:', error);
     const msg = { content: '❌ Could not record the result.', flags: MessageFlags.Ephemeral };
