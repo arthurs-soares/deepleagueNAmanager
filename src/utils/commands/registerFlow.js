@@ -9,6 +9,7 @@ const { ensureLeaderDiscordRole } = require('../user/leaderRoleAssigner');
 function validateRegisterInputs(interaction) {
   const name = interaction.options.getString('name');
   const leaderUser = interaction.options.getUser('leader');
+  const region = interaction.options.getString('region');
 
   if (!name || name.trim().length === 0) {
     return {
@@ -24,6 +25,13 @@ function validateRegisterInputs(interaction) {
     };
   }
 
+  if (!region) {
+    return {
+      ok: false,
+      container: createErrorEmbed('Invalid Region', 'You need to select a valid region.')
+    };
+  }
+
   return { ok: true };
 }
 
@@ -33,12 +41,14 @@ function validateRegisterInputs(interaction) {
 function buildGuildRegistrationData(interaction) {
   const name = interaction.options.getString('name');
   const leaderUser = interaction.options.getUser('leader');
+  const region = interaction.options.getString('region');
   return {
     name,
     leader: leaderUser.username,
     leaderId: leaderUser.id,
     registeredBy: interaction.user.id,
-    discordGuildId: interaction.guild.id
+    discordGuildId: interaction.guild.id,
+    region
   };
 }
 

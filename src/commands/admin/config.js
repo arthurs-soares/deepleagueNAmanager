@@ -45,7 +45,10 @@ module.exports = {
           `War Dodge: ${channelsCfg.warDodgeChannelId ? `<#${channelsCfg.warDodgeChannelId}>` : '—'}\n` +
           `Wager Dodge: ${channelsCfg.wagerDodgeChannelId ? `<#${channelsCfg.wagerDodgeChannelId}>` : '—'}\n` +
           `Leaderboard: ${channelsCfg.leaderboardChannelId ? `<#${channelsCfg.leaderboardChannelId}>` : '—'}\n` +
-          `Event Points Leaderboard: ${channelsCfg.eventPointsLeaderboardChannelId ? `<#${channelsCfg.eventPointsLeaderboardChannelId}>` : '—'}`
+          `Event Points Leaderboard: ${channelsCfg.eventPointsLeaderboardChannelId ? `<#${channelsCfg.eventPointsLeaderboardChannelId}>` : '—'}\n` +
+          `Roster Forum (SA): ${channelsCfg.rosterForumSAChannelId ? `<#${channelsCfg.rosterForumSAChannelId}>` : '—'}\n` +
+          `Roster Forum (NA): ${channelsCfg.rosterForumNAChannelId ? `<#${channelsCfg.rosterForumNAChannelId}>` : '—'}\n` +
+          `Roster Forum (EU): ${channelsCfg.rosterForumEUChannelId ? `<#${channelsCfg.rosterForumEUChannelId}>` : '—'}`
         );
 
       const rolesText = new TextDisplayBuilder()

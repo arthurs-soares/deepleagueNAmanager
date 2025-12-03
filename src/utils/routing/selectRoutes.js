@@ -31,6 +31,9 @@ function resolveSelectHandler(customId) {
   if (customId === 'config:channels:selectLogs') return '../interactions/channel-selects/configLogsSelect';
   if (customId === 'config:channels:selectLeaderboard') return '../interactions/channel-selects/configLeaderboardSelect';
   if (customId === 'config:channels:selectRosterForum') return '../interactions/channel-selects/configRosterForumSelect';
+  if (customId === 'config:channels:selectRosterForumSA') return '../interactions/channel-selects/configRosterForumSASelect';
+  if (customId === 'config:channels:selectRosterForumNA') return '../interactions/channel-selects/configRosterForumNASelect';
+  if (customId === 'config:channels:selectRosterForumEU') return '../interactions/channel-selects/configRosterForumEUSelect';
   if (customId === 'config:channels:selectWarCategory') return '../interactions/channel-selects/configWarCategorySelect';
   if (customId === 'config:channels:selectWagerCategory') return '../interactions/channel-selects/configWagerCategorySelect';
   if (customId === 'config:channels:selectGeneralTicketsCategory') return '../interactions/channel-selects/configGeneralTicketsCategorySelect';

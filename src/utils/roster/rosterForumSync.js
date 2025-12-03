@@ -13,6 +13,38 @@ async function buildRosterPostContent(guildDoc) {
 }
 
 /**
+ * Map region filter to guild schema region values
+ */
+function getRegionValues(regionFilter) {
+  switch (regionFilter) {
+    case 'South America':
+      return ['South America'];
+    case 'NA':
+      return ['NA East', 'NA West'];
+    case 'Europe':
+      return ['Europe'];
+    default:
+      return null; // All regions
+  }
+}
+
+/**
+ * Get the appropriate forum channel ID based on region filter
+ */
+function getForumChannelId(settings, regionFilter) {
+  switch (regionFilter) {
+    case 'South America':
+      return settings.rosterForumSAChannelId;
+    case 'NA':
+      return settings.rosterForumNAChannelId;
+    case 'Europe':
+      return settings.rosterForumEUChannelId;
+    default:
+      return settings.rosterForumChannelId;
+  }
+}
+
+/**
  * Encontra o thread de roster pelo título (nome da guilda)
  */
 async function findRosterThread(discordGuild, title) {
@@ -44,14 +76,23 @@ async function removeGuildRosterThread(discordGuild, guildName) {
  * - Create topics for guilds without topic
  * - Update the first post of the topic to reflect the current roster
  * - Archive topics of removed guilds
+ * @param {import('discord.js').Guild} discordGuild - The Discord guild
+ * @param {string} [regionFilter] - Optional region filter: 'South America', 'NA', 'Europe', or null for all
  */
-async function syncRosterForum(discordGuild) {
+async function syncRosterForum(discordGuild, regionFilter = null) {
   const settings = await getOrCreateServerSettings(discordGuild.id);
-  const forumId = settings.rosterForumChannelId;
+  const forumId = getForumChannelId(settings, regionFilter);
   const forum = forumId ? discordGuild.channels.cache.get(forumId) : null;
   if (!forum || forum.type !== ChannelType.GuildForum) return;
 
-  const guilds = await Guild.find({ discordGuildId: discordGuild.id }).sort({ createdAt: 1 });
+  // Build query filter based on region
+  const query = { discordGuildId: discordGuild.id };
+  const regionValues = getRegionValues(regionFilter);
+  if (regionValues) {
+    query.region = { $in: regionValues };
+  }
+
+  const guilds = await Guild.find(query).sort({ createdAt: 1 });
 
   // Map existing threads by title (guild name)
   const active = await forum.threads.fetchActive();

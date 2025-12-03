@@ -84,6 +84,21 @@ async function handle(interaction) {
         customId: 'config:channels:selectRosterForum',
         placeholder: 'Select a forum channel for guild rosters',
         types: [ChannelType.GuildForum]
+      },
+      rosterForumSA: {
+        customId: 'config:channels:selectRosterForumSA',
+        placeholder: 'Select a forum channel for SA region rosters',
+        types: [ChannelType.GuildForum]
+      },
+      rosterForumNA: {
+        customId: 'config:channels:selectRosterForumNA',
+        placeholder: 'Select a forum channel for NA region rosters',
+        types: [ChannelType.GuildForum]
+      },
+      rosterForumEU: {
+        customId: 'config:channels:selectRosterForumEU',
+        placeholder: 'Select a forum channel for EU region rosters',
+        types: [ChannelType.GuildForum]
       }
     };
 

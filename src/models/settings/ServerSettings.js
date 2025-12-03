@@ -13,6 +13,10 @@ const serverSettingsSchema = new mongoose.Schema({
   generalTicketsChannelId: { type: String, default: null },
   logsChannelId: { type: String, default: null },
   rosterForumChannelId: { type: String, default: null },
+  // Region-specific roster forums
+  rosterForumSAChannelId: { type: String, default: null },
+  rosterForumNAChannelId: { type: String, default: null },
+  rosterForumEUChannelId: { type: String, default: null },
   warCategoryId: { type: String, default: null },
   wagerCategoryId: { type: String, default: null },
   generalTicketsCategoryId: { type: String, default: null },

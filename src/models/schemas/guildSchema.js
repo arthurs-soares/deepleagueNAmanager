@@ -49,6 +49,13 @@ const guildSchema = new mongoose.Schema({
     required: true
   },
 
+  // Guild region
+  region: {
+    type: String,
+    enum: ['Europe', 'South America', 'NA East', 'NA West'],
+    required: true
+  },
+
   // Guild status (active, inactive, etc.)
   status: {
     type: String,

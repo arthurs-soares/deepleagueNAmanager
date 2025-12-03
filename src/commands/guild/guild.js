@@ -42,6 +42,18 @@ module.exports = {
             .setDescription('Select the guild leader')
             .setRequired(true)
         )
+        .addStringOption(opt =>
+          opt
+            .setName('region')
+            .setDescription('Guild region')
+            .setRequired(true)
+            .addChoices(
+              { name: 'Europe', value: 'Europe' },
+              { name: 'South America', value: 'South America' },
+              { name: 'NA East', value: 'NA East' },
+              { name: 'NA West', value: 'NA West' }
+            )
+        )
     )
     // Delete subcommand
     .addSubcommand(sub =>

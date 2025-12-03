@@ -37,6 +37,9 @@ async function handle(interaction) {
         `**Wager Dodge Channel:** ${cfg.wagerDodgeChannelId ? `<#${cfg.wagerDodgeChannelId}>` : '—'}\n` +
         `**War Logs Channel:** ${cfg.warLogsChannelId ? `<#${cfg.warLogsChannelId}>` : '—'}\n` +
         `**Guild Rosters Forum:** ${cfg.rosterForumChannelId ? `<#${cfg.rosterForumChannelId}>` : '—'}\n` +
+        `**Roster Forum (SA):** ${cfg.rosterForumSAChannelId ? `<#${cfg.rosterForumSAChannelId}>` : '—'}\n` +
+        `**Roster Forum (NA):** ${cfg.rosterForumNAChannelId ? `<#${cfg.rosterForumNAChannelId}>` : '—'}\n` +
+        `**Roster Forum (EU):** ${cfg.rosterForumEUChannelId ? `<#${cfg.rosterForumEUChannelId}>` : '—'}\n` +
         `**Guild Leaderboard Channel:** ${cfg.leaderboardChannelId ? `<#${cfg.leaderboardChannelId}>` : '—'}\n` +
         `**Wager Leaderboard Channel:** ${cfg.wagerLeaderboardChannelId ? `<#${cfg.wagerLeaderboardChannelId}>` : '—'}\n` +
         `**Event Points Leaderboard:** ${cfg.eventPointsLeaderboardChannelId ? `<#${cfg.eventPointsLeaderboardChannelId}>` : '—'}`
@@ -134,7 +137,22 @@ async function handle(interaction) {
           .setLabel('Guild Rosters Forum')
           .setDescription('Forum channel for guild roster posts')
           .setValue('rosterForum')
-          .setEmoji('📋')
+          .setEmoji('📋'),
+        new StringSelectMenuOptionBuilder()
+          .setLabel('Roster Forum (SA)')
+          .setDescription('Forum for South America region rosters')
+          .setValue('rosterForumSA')
+          .setEmoji('🌎'),
+        new StringSelectMenuOptionBuilder()
+          .setLabel('Roster Forum (NA)')
+          .setDescription('Forum for North America region rosters')
+          .setValue('rosterForumNA')
+          .setEmoji('🌎'),
+        new StringSelectMenuOptionBuilder()
+          .setLabel('Roster Forum (EU)')
+          .setDescription('Forum for Europe region rosters')
+          .setValue('rosterForumEU')
+          .setEmoji('🌍')
       ]);
 
     const row = new ActionRowBuilder().addComponents(channelSelect);
