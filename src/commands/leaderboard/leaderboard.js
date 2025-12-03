@@ -1,28 +1,54 @@
+/**
+ * /leaderboard command - Leaderboard management commands
+ * Consolidates: refresh
+ */
 const {
   SlashCommandBuilder,
   PermissionFlagsBits,
   MessageFlags
 } = require('discord.js');
-const { upsertLeaderboardMessage } = require('../../utils/user/leaderboard');
 const { ContainerBuilder, TextDisplayBuilder } = require('@discordjs/builders');
+const { upsertLeaderboardMessage } = require('../../utils/user/leaderboard');
 const { colors } = require('../../config/botConfig');
+const LoggerService = require('../../services/LoggerService');
 
 module.exports = {
   data: new SlashCommandBuilder()
-    .setName('refreshleaderboards')
-    .setDescription('Force refresh all configured leaderboards')
-    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
+    .setName('leaderboard')
+    .setDescription('Leaderboard management commands')
+    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+    // Refresh subcommand
+    .addSubcommand(sub =>
+      sub.setName('refresh')
+        .setDescription('Force refresh all configured leaderboards')
+    ),
 
-  category: 'Admin',
+  category: 'Leaderboard',
   cooldown: 10,
 
   async execute(interaction) {
+    const subcommand = interaction.options.getSubcommand();
+
+    switch (subcommand) {
+      case 'refresh':
+        return this.handleRefresh(interaction);
+      default:
+        return interaction.reply({
+          content: '❌ Unknown subcommand.',
+          flags: MessageFlags.Ephemeral
+        });
+    }
+  },
+
+  /**
+   * Handle /leaderboard refresh
+   */
+  async handleRefresh(interaction) {
     try {
       await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
       const results = [];
 
-      // Update guild war leaderboard
       try {
         const guildLbResult = await upsertLeaderboardMessage(interaction.guild);
         if (guildLbResult.ok) {
@@ -55,7 +81,9 @@ module.exports = {
         flags: MessageFlags.IsComponentsV2
       });
     } catch (error) {
-      console.error('Error refreshing leaderboards:', error);
+      LoggerService.error('Error in /leaderboard refresh:', {
+        error: error.message
+      });
       const msg = {
         content: '❌ Could not refresh leaderboards.',
         flags: MessageFlags.Ephemeral
@@ -67,4 +95,3 @@ module.exports = {
     }
   }
 };
-

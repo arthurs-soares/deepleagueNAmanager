@@ -10,59 +10,47 @@ function buildHelpSelectRow() {
     .setPlaceholder('📚 Select a help category')
     .addOptions([
       {
-        label: '🆕 What\'s New',
-        description: 'Latest updates and new features',
+        label: 'What\'s New',
+        description: 'Latest updates and changes',
         value: 'whats_new',
         emoji: '🆕'
       },
       {
-        label: 'Commands by Category',
-        description: 'List all commands organized by category',
+        label: 'Commands Reference',
+        description: 'All commands organized by domain',
         value: 'commands',
         emoji: '📁'
       },
       {
-        label: 'Logs and Audit',
-        description: 'Information about the bot\'s log system',
-        value: 'logs',
-        emoji: '🧾'
-      },
-      {
-        label: 'Leaderboard',
-        description: 'How the automatic leaderboard works',
-        value: 'leaderboard',
-        emoji: '🏆'
-      },
-      {
-        label: 'User Profile',
-        description: 'See information about the /profile command',
-        value: 'profile',
-        emoji: '👤'
-      },
-      {
-        label: 'Administration Panel',
-        description: 'Access and permissions for moderators/admins',
-        value: 'admin_panel',
-        emoji: '🛡️'
-      },
-      {
         label: 'War System',
-        description: 'War tickets and related functionalities',
+        description: 'War tickets and management',
         value: 'war_system',
         emoji: '⚔️'
       },
       {
         label: 'Wager System',
-        description: 'Individual wager system for players',
+        description: 'Player-to-player competitive matches',
         value: 'wager_system',
         emoji: '🎲'
       },
       {
-        label: 'Security and Limits',
-        description: 'Rate limiting, cooldowns and best practices',
+        label: 'Leaderboards',
+        description: 'Rankings and leaderboards',
+        value: 'leaderboard',
+        emoji: '🏆'
+      },
+      {
+        label: 'Administration',
+        description: 'Admin panel and commands',
+        value: 'admin_panel',
+        emoji: '🛡️'
+      },
+      {
+        label: 'Security',
+        description: 'Rate limiting and cooldowns',
         value: 'security',
         emoji: '🔐'
-      },
+      }
     ]);
 
   return new ActionRowBuilder().addComponents(menu);

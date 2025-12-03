@@ -4,9 +4,7 @@ const { colors, emojis } = require('../../config/botConfig');
 const { buildHelpSelectRow } = require('../../utils/misc/helpMenuBuilder');
 const {
   buildCommandsEmbed,
-  buildLogsEmbed,
   buildLeaderboardEmbed,
-  buildProfileEmbed,
   buildAdminPanelEmbed,
   buildWarSystemEmbed,
   buildSecurityEmbed,
@@ -18,7 +16,7 @@ const LoggerService = require('../../services/LoggerService');
 /**
  * StringSelectMenu handler for /help
  * CustomId: help:categories
- * Values: whats_new | commands | logs | leaderboard | profile | admin_panel |
+ * Values: whats_new | commands | leaderboard | admin_panel |
  *         war_system | wager_system | security
  * @param {StringSelectMenuInteraction} interaction
  */
@@ -29,7 +27,6 @@ async function handle(interaction) {
 
     const container = buildContainerForValue(value, interaction.client);
 
-    // Keep the dropdown for navigation
     const row = buildHelpSelectRow();
     return interaction.update({
       components: [container, row],
@@ -44,8 +41,7 @@ async function handle(interaction) {
       : (colors.error || 0xff4d4f);
     container.setAccentColor(errorColor);
 
-    const titleText = new TextDisplayBuilder()
-      .setContent('# Error');
+    const titleText = new TextDisplayBuilder().setContent('# Error');
     const descText = new TextDisplayBuilder()
       .setContent('Could not update the help. Please try again.');
 
@@ -55,7 +51,9 @@ async function handle(interaction) {
       components: [container],
       flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral
     };
-    if (interaction.deferred || interaction.replied) return interaction.followUp(msg);
+    if (interaction.deferred || interaction.replied) {
+      return interaction.followUp(msg);
+    }
     return interaction.reply(msg);
   }
 }
@@ -72,12 +70,8 @@ function buildContainerForValue(value, client) {
       return buildWhatsNewEmbed();
     case 'commands':
       return buildCommandsEmbed(client);
-    case 'logs':
-      return buildLogsEmbed();
     case 'leaderboard':
       return buildLeaderboardEmbed();
-    case 'profile':
-      return buildProfileEmbed();
     case 'admin_panel':
       return buildAdminPanelEmbed();
     case 'war_system':
@@ -96,7 +90,7 @@ function buildContainerForValue(value, client) {
       const titleText = new TextDisplayBuilder()
         .setContent(`# ${client.user.username} — Help`);
       const descText = new TextDisplayBuilder()
-        .setContent(`${emojis.info} Use the menu to navigate through categories.`);
+        .setContent(`${emojis.info} Use the menu to navigate.`);
 
       container.addTextDisplayComponents(titleText, descText);
       return container;

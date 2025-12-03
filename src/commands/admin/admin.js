@@ -1,5 +1,4 @@
 const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
-const { ContainerBuilder, TextDisplayBuilder } = require('@discordjs/builders');
 const { replyEphemeral } = require('../../utils/core/reply');
 const { logCommandExecution } = require('../../utils/core/commandLogger');
 const War = require('../../models/war/War');
@@ -8,25 +7,7 @@ const LoggerService = require('../../services/LoggerService');
 
 const adminWar = require('../../utils/commands/adminWar');
 const adminWager = require('../../utils/commands/adminWager');
-
-
-/**
- * Build info container for responses
- * @param {string[]} lines - Content lines
- * @returns {ContainerBuilder}
- */
-function _buildInfoContainer(lines) {
-  const container = new ContainerBuilder();
-  const content = (lines || [])
-    .filter(line => typeof line === 'string' && line.trim().length > 0)
-    .join('\n');
-  if (content.trim().length > 0) {
-    container.addTextDisplayComponents(
-      new TextDisplayBuilder().setContent(content)
-    );
-  }
-  return container;
-}
+const adminSystem = require('../../utils/commands/adminSystem');
 
 async function warMarkDodge(interaction) {
   return adminWar.markDodge(interaction);
@@ -113,6 +94,24 @@ module.exports = {
           .setDescription('Loser')
           .setRequired(true))
       )
+    )
+
+    // SYSTEM domain
+    .addSubcommandGroup(g => g
+      .setName('system')
+      .setDescription('System administration')
+      .addSubcommand(sc => sc
+        .setName('sync')
+        .setDescription('Synchronize guild data with Discord')
+      )
+      .addSubcommand(sc => sc
+        .setName('db-status')
+        .setDescription('Show current database connection status')
+      )
+      .addSubcommand(sc => sc
+        .setName('db-reset')
+        .setDescription('Reset database connection state')
+      )
     ),
 
   category: 'Admin',
@@ -181,6 +180,16 @@ module.exports = {
       }
 
       if (group === 'wager' && sub === 'record') return wagerRecord(interaction);
+
+      if (group === 'system' && sub === 'sync') {
+        return adminSystem.sync(interaction);
+      }
+      if (group === 'system' && sub === 'db-status') {
+        return adminSystem.dbStatus(interaction);
+      }
+      if (group === 'system' && sub === 'db-reset') {
+        return adminSystem.dbReset(interaction);
+      }
 
       return replyEphemeral(interaction, { content: 'Unknown subcommand.' });
     } catch (error) {

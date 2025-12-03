@@ -1,65 +1,67 @@
-const { ContainerBuilder, TextDisplayBuilder, SeparatorBuilder } = require('@discordjs/builders');
+const {
+  ContainerBuilder,
+  TextDisplayBuilder,
+  SeparatorBuilder
+} = require('@discordjs/builders');
+const { SeparatorSpacingSize } = require('discord.js');
 const { colors, emojis } = require('../../../config/botConfig');
 
 function buildWarSystemEmbed() {
   const container = new ContainerBuilder();
 
-  // Set accent color
   const primaryColor = typeof colors.primary === 'string'
     ? parseInt(colors.primary.replace('#', ''), 16)
     : colors.primary;
   container.setAccentColor(primaryColor);
 
-  // Header
   const titleText = new TextDisplayBuilder()
     .setContent('# ⚔️ War System');
   const descText = new TextDisplayBuilder()
-    .setContent('Complete ticket flow and war management functionalities.');
+    .setContent('Complete ticket flow and war management.');
 
   container.addTextDisplayComponents(titleText, descText);
-  container.addSeparatorComponents(new SeparatorBuilder());
+  container.addSeparatorComponents(
+    new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small)
+  );
 
-  // War Tickets
+  const commandsText = new TextDisplayBuilder()
+    .setContent(
+      '**Commands:**\n' +
+      '`/war log` — Log a war result\n' +
+      '`/war edit` — Edit an existing war\n' +
+      '`/war tickets` — Setup war ticket channel'
+    );
+  container.addTextDisplayComponents(commandsText);
+
   const ticketsText = new TextDisplayBuilder()
     .setContent(
       '**War Tickets**\n' +
-      'War channels are created in the category defined in `/config` → Channels. The war panel centralizes actions. When a war is accepted, the bot pins a control message in the ticket channel with buttons to declare winner, mark dodge and close the ticket. Only Hosters/Moderators/Admins can use them.'
+      `${emojis.ticket} Wars are created in the category set in \`/config\`. ` +
+      'The panel has buttons to declare winner, mark dodge and close.'
     );
   container.addTextDisplayComponents(ticketsText);
 
-  // Close War Ticket
   const closeText = new TextDisplayBuilder()
     .setContent(
-      '**Close War Ticket**\n' +
-      `${emojis.ticket} After the war is ACCEPTED, the panel will have the "Close Ticket" button. Only Hosters/Moderators/Admins can use it. You can also use \`/closeticket\` inside the ticket channel. When closed, the channel is deleted and a log is sent to the logs channel. A full transcript (messages, authors, timestamps) is automatically saved to the logs channel before deletion. After declaring the winner, the "Close + Transcript" button is also posted automatically in the channel.`
+      '**Closing Tickets**\n' +
+      'Use `/ticket close` or the panel button. A transcript is saved.'
     );
   container.addTextDisplayComponents(closeText);
 
-  // Inactivity Reminders
-  const inactivityText = new TextDisplayBuilder()
-    .setContent(
-      '**Inactivity Reminders**\n' +
-      'The bot sends automatic reminders in English when a war ticket becomes inactive (e.g.: 36h without messages). Guild leaders/co-leaders are mentioned. There is a cooldown between reminders to avoid spam.'
-    );
-  container.addTextDisplayComponents(inactivityText);
-
-  // Dodge Flow
   const dodgeText = new TextDisplayBuilder()
     .setContent(
       '**Dodge Flow**\n' +
-      'Only Hosters/Moderators can mark a war as Dodge using the Dodge ' +
-      'button. They must select which guild dodged and confirm. ' +
-      'Configure the War Dodge Channel in `/config` → Channels ' +
-      'to receive automatic notifications.'
+      'Hosters/Mods can mark dodge via panel. Configure the War Dodge ' +
+      'Channel in `/config` → Channels.'
     );
   container.addTextDisplayComponents(dodgeText);
 
-  // Admin War Commands
   const adminText = new TextDisplayBuilder()
     .setContent(
-      '**Admin War Commands**\n' +
-      '`/admin war mark-dodge`, `/admin war undo-dodge`, ' +
-      '`/admin war revert-result`'
+      '**Admin Commands:**\n' +
+      '`/admin war mark-dodge` — Mark war as dodge\n' +
+      '`/admin war undo-dodge` — Undo dodge\n' +
+      '`/admin war revert-result` — Revert result'
     );
   container.addTextDisplayComponents(adminText);
 

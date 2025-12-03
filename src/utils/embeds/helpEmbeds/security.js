@@ -1,46 +1,54 @@
-const { ContainerBuilder, TextDisplayBuilder, SeparatorBuilder } = require('@discordjs/builders');
+const {
+  ContainerBuilder,
+  TextDisplayBuilder,
+  SeparatorBuilder
+} = require('@discordjs/builders');
+const { SeparatorSpacingSize } = require('discord.js');
 const { colors } = require('../../../config/botConfig');
 
 function buildSecurityEmbed() {
   const container = new ContainerBuilder();
 
-  // Set accent color
   const primaryColor = typeof colors.primary === 'string'
     ? parseInt(colors.primary.replace('#', ''), 16)
     : colors.primary;
   container.setAccentColor(primaryColor);
 
-  // Header
   const titleText = new TextDisplayBuilder()
     .setContent('# 🔐 Security and Limits');
   const descText = new TextDisplayBuilder()
-    .setContent('The bot applies measures to protect against abuse and ensure clear rules between Discord and the game:');
+    .setContent('Protection measures against abuse.');
 
   container.addTextDisplayComponents(titleText, descText);
-  container.addSeparatorComponents(new SeparatorBuilder());
+  container.addSeparatorComponents(
+    new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small)
+  );
 
-  // Rate Limiting
   const rateLimitText = new TextDisplayBuilder()
-    .setContent('**Rate Limiting**\nBlocks excessive interactions per user in short periods.');
+    .setContent(
+      '**Rate Limiting:**\n' +
+      'Blocks excessive interactions per user in short periods.'
+    );
   container.addTextDisplayComponents(rateLimitText);
 
-  // Command Cooldowns
-  const cooldownText = new TextDisplayBuilder()
-    .setContent('**Command Cooldowns**\nEach command can define an individual cooldown.');
-  container.addTextDisplayComponents(cooldownText);
-
-  // Guild Transition Cooldown
   const transitionText = new TextDisplayBuilder()
     .setContent(
-      '**Guild Transition Cooldown (in-game)**\n' +
-      'When leaving a guild, there is a 3-day cooldown to join ANOTHER guild. Re-entering the SAME guild is allowed. Joining/leaving the Discord server does NOT apply cooldown. Leaders and Co-leaders can manage manual overrides with `/managecooldown` (set/increase/decrease/reset/check).'
+      '**Guild Transition Cooldown:**\n' +
+      '3-day cooldown when leaving a guild. Re-entering the same guild ' +
+      'is allowed. Leaders can manage with `/cooldown`.'
     );
   container.addTextDisplayComponents(transitionText);
 
-  // Validation
-  const validationText = new TextDisplayBuilder()
-    .setContent('**Validation**\nSanitized inputs and safe regex usage in queries.');
-  container.addTextDisplayComponents(validationText);
+  const cooldownCmdsText = new TextDisplayBuilder()
+    .setContent(
+      '**Cooldown Commands:**\n' +
+      '`/cooldown set` — Set specific duration\n' +
+      '`/cooldown increase` — Add time\n' +
+      '`/cooldown decrease` — Reduce time\n' +
+      '`/cooldown reset` — Clear cooldown\n' +
+      '`/cooldown check` — View status'
+    );
+  container.addTextDisplayComponents(cooldownCmdsText);
 
   return container;
 }

@@ -1,51 +1,49 @@
-const { ContainerBuilder, TextDisplayBuilder, SeparatorBuilder } = require('@discordjs/builders');
+const {
+  ContainerBuilder,
+  TextDisplayBuilder,
+  SeparatorBuilder
+} = require('@discordjs/builders');
+const { SeparatorSpacingSize } = require('discord.js');
 const { colors } = require('../../../config/botConfig');
 
 function buildLogsEmbed() {
   const container = new ContainerBuilder();
 
-  // Set accent color
   const primaryColor = typeof colors.primary === 'string'
     ? parseInt(colors.primary.replace('#', ''), 16)
     : colors.primary;
   container.setAccentColor(primaryColor);
 
-  // Header
   const titleText = new TextDisplayBuilder()
     .setContent('# 🧾 Logs and Audit');
   const descText = new TextDisplayBuilder()
-    .setContent('The bot records important events in a configurable logs channel via `/config` → Channels → Set Logs Channel.');
+    .setContent(
+      'Configure the logs channel in `/config` → Channels → Logs.'
+    );
 
   container.addTextDisplayComponents(titleText, descText);
-  container.addSeparatorComponents(new SeparatorBuilder());
+  container.addSeparatorComponents(
+    new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small)
+  );
 
-  // Coverage
   const coverageText = new TextDisplayBuilder()
     .setContent(
-      '**Coverage**\n' +
-      '- Commands: name, parameters, user, timestamp, results, errors, ' +
-      'and before/after for data changes\n' +
-      '- Wars: creation, acceptance/dodge and completion\n' +
-      '- Administrative actions (audit)'
+      '**What is logged:**\n' +
+      '• Command executions with parameters\n' +
+      '• War creation, acceptance, results\n' +
+      '• Ticket transcripts on close\n' +
+      '• Administrative actions\n' +
+      '• Data changes (before/after)'
     );
   container.addTextDisplayComponents(coverageText);
 
-  // DM Warnings
   const dmWarningsText = new TextDisplayBuilder()
     .setContent(
-      '**DM Warnings**\n' +
-      'Configure a dedicated channel via `/config` → Channels → Set DM Warning Channel. If the bot cannot DM a user (privacy closed), it automatically creates a PRIVATE THREAD in this channel, mentions moderators/admins and the user, and posts the original message with its buttons/actions.'
+      '**DM Fallback:**\n' +
+      'Set DM Warning Channel in `/config`. If a user has DMs closed, ' +
+      'the bot creates a private thread with the message.'
     );
   container.addTextDisplayComponents(dmWarningsText);
-
-  // Notes
-  const notesText = new TextDisplayBuilder()
-    .setContent(
-      '**Notes**\n' +
-      'Hosters are only mentioned ONCE, when the war is ACCEPTED. Before that, only leaders/co-leaders are mentioned.\n' +
-      'Also set the Tickets Channel and Category for war channel creation in `/config` → Channels.'
-    );
-  container.addTextDisplayComponents(notesText);
 
   return container;
 }

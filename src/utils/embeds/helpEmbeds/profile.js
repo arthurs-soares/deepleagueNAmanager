@@ -4,20 +4,28 @@ const { colors } = require('../../../config/botConfig');
 function buildProfileEmbed() {
   const container = new ContainerBuilder();
 
-  // Set accent color
   const primaryColor = typeof colors.primary === 'string'
     ? parseInt(colors.primary.replace('#', ''), 16)
     : colors.primary;
   container.setAccentColor(primaryColor);
 
-  // Header
   const titleText = new TextDisplayBuilder()
     .setContent('# 👤 User Profile');
+
   const descText = new TextDisplayBuilder()
-    .setContent('Display a clean and organized user profile with guild info, wager statistics, server ranking, and account details. Profiles are shown publicly in the channel.');
+    .setContent(
+      'View detailed user information with `/user profile`.\n\n' +
+      '**Features:**\n' +
+      '• Guild membership and role\n' +
+      '• Wager statistics and ELO\n' +
+      '• Server ranking position\n' +
+      '• Account creation date\n\n' +
+      '**Usage:**\n' +
+      '`/user profile` — View your own profile\n' +
+      '`/user profile @user` — View another user\'s profile'
+    );
 
   container.addTextDisplayComponents(titleText, descText);
-
   return container;
 }
 

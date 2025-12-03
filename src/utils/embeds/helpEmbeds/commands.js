@@ -1,67 +1,111 @@
-const { ContainerBuilder, TextDisplayBuilder, SeparatorBuilder } = require('@discordjs/builders');
-const { colors, emojis } = require('../../../config/botConfig');
+const {
+  ContainerBuilder,
+  TextDisplayBuilder,
+  SeparatorBuilder
+} = require('@discordjs/builders');
+const { SeparatorSpacingSize } = require('discord.js');
+const { colors } = require('../../../config/botConfig');
 
-function buildCommandsEmbed(client) {
+/**
+ * Build the commands help embed with organized structure
+ * @param {Client} _client - Discord client (unused, kept for compatibility)
+ * @returns {ContainerBuilder}
+ */
+function buildCommandsEmbed(_client) {
   const container = new ContainerBuilder();
 
-  // Set accent color
   const primaryColor = typeof colors.primary === 'string'
     ? parseInt(colors.primary.replace('#', ''), 16)
     : colors.primary;
   container.setAccentColor(primaryColor);
 
-  // Header
   const titleText = new TextDisplayBuilder()
-    .setContent('# 📁 Commands by Category');
+    .setContent('# 📁 Commands Reference');
   const descText = new TextDisplayBuilder()
-    .setContent('List of available commands, organized by category.');
+    .setContent('All commands organized by domain.');
 
   container.addTextDisplayComponents(titleText, descText);
+  container.addSeparatorComponents(
+    new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small)
+  );
 
-  // Safety check
-  if (!client || !client.commands || client.commands.size === 0) {
-    const warningText = new TextDisplayBuilder()
-      .setContent(`**${emojis.warning} No commands found**\nCommands have not been loaded yet or no commands are available.`);
-    container.addTextDisplayComponents(warningText);
-    return container;
-  }
+  // Guild commands
+  const guildText = new TextDisplayBuilder()
+    .setContent(
+      '### 🏰 Guild\n' +
+      '`/guild panel` — View your guild panel\n' +
+      '`/guild view` — List all guilds\n' +
+      '`/guild register` — Register a new guild\n' +
+      '`/guild delete` — Delete a guild\n' +
+      '`/guild set-score` — Set W/L score'
+    );
+  container.addTextDisplayComponents(guildText);
 
-  const categories = {};
-  client.commands.forEach((command) => {
-    // Additional safety check
-    if (!command || !command.data) return;
+  // War commands
+  const warText = new TextDisplayBuilder()
+    .setContent(
+      '### ⚔️ War\n' +
+      '`/war log` — Log a war result\n' +
+      '`/war edit` — Edit an existing war\n' +
+      '`/war tickets` — Setup war ticket channel'
+    );
+  container.addTextDisplayComponents(warText);
 
-    const category = command.category || 'General';
-    if (!categories[category]) categories[category] = [];
-    categories[category].push(command);
-  });
+  // Wager commands
+  const wagerText = new TextDisplayBuilder()
+    .setContent(
+      '### 🎲 Wager\n' +
+      '`/wager stats` — View wager statistics\n' +
+      '`/wager leaderboard` — Wager rankings'
+    );
+  container.addTextDisplayComponents(wagerText);
 
-  // If there are no categories after processing
-  if (Object.keys(categories).length === 0) {
-    const warningText = new TextDisplayBuilder()
-      .setContent(`**${emojis.warning} No valid commands**\nNo valid commands were found to display.`);
-    container.addTextDisplayComponents(warningText);
-    return container;
-  }
+  // User commands
+  const userText = new TextDisplayBuilder()
+    .setContent(
+      '### 👤 User\n' +
+      '`/user profile` — View user profile\n' +
+      '`/user fix-guild` — Fix guild associations\n' +
+      '`/user reset-ratings` — Reset all ELO ratings'
+    );
+  container.addTextDisplayComponents(userText);
 
-  // Add separator before categories
-  container.addSeparatorComponents(new SeparatorBuilder());
+  // Ticket commands
+  const ticketText = new TextDisplayBuilder()
+    .setContent(
+      '### 🎫 Ticket\n' +
+      '`/ticket close` — Close current ticket\n' +
+      '`/ticket add-user` — Add user to ticket'
+    );
+  container.addTextDisplayComponents(ticketText);
 
-  // Add each category as a section
-  Object.keys(categories)
-    .sort((a, b) => a.localeCompare(b))
-    .forEach((category) => {
-      const list = categories[category]
-        .filter(cmd => cmd && cmd.data && cmd.data.name) // Additional filter
-        .map((cmd) => `\`/${cmd.data.name}\` — ${cmd.data.description || 'No description'}`)
-        .join('\n');
+  container.addSeparatorComponents(
+    new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small)
+  );
 
-      if (list) {
-        const categoryText = new TextDisplayBuilder()
-          .setContent(`**📁 ${category}**\n${list}`);
-        container.addTextDisplayComponents(categoryText);
-      }
-    });
+  // Admin commands
+  const adminText = new TextDisplayBuilder()
+    .setContent(
+      '### 🛡️ Admin\n' +
+      '`/admin war` — War administration\n' +
+      '`/admin wager` — Wager administration\n' +
+      '`/admin system` — System management\n' +
+      '`/cooldown` — Manage user cooldowns\n' +
+      '`/leaderboard refresh` — Refresh leaderboards\n' +
+      '`/event point` — Manage event points\n' +
+      '`/config` — Server configuration'
+    );
+  container.addTextDisplayComponents(adminText);
+
+  // General commands
+  const generalText = new TextDisplayBuilder()
+    .setContent(
+      '### � General\n' +
+      '`/help` — Show this help menu\n' +
+      '`/ping` — Check bot latency\n' +
+      '`/support` — Get support info'
+    );
+  container.addTextDisplayComponents(generalText);
 
   return container;
 }

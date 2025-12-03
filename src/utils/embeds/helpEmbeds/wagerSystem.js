@@ -3,74 +3,61 @@ const {
   TextDisplayBuilder,
   SeparatorBuilder
 } = require('@discordjs/builders');
+const { SeparatorSpacingSize } = require('discord.js');
 const { colors } = require('../../../config/botConfig');
 
 function buildWagerSystemEmbed() {
   const container = new ContainerBuilder();
 
-  // Set accent color
   const primaryColor = typeof colors.primary === 'string'
     ? parseInt(colors.primary.replace('#', ''), 16)
     : colors.primary;
   container.setAccentColor(primaryColor);
 
-  // Header
   const titleText = new TextDisplayBuilder()
     .setContent('# 🎲 Wager System');
   const descText = new TextDisplayBuilder()
-    .setContent('Wager tickets for player-to-player matches.');
+    .setContent('Player-to-player competitive matches.');
 
   container.addTextDisplayComponents(titleText, descText);
-  container.addSeparatorComponents(new SeparatorBuilder());
+  container.addSeparatorComponents(
+    new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small)
+  );
 
-  // Wager Tickets
+  const commandsText = new TextDisplayBuilder()
+    .setContent(
+      '**Commands:**\n' +
+      '`/wager stats` — View your wager statistics\n' +
+      '`/wager leaderboard` — Server wager rankings\n' +
+      '`/admin wager record` — Record a wager result'
+    );
+  container.addTextDisplayComponents(commandsText);
+
   const ticketsText = new TextDisplayBuilder()
     .setContent(
       '**Wager Tickets**\n' +
-      'Use `/config` → Channels to set the Wager Tickets Channel and ' +
-      'the Wager Category. The panel lets any member open player-to-player ' +
-      'wager tickets. Mods/Hosters/Admins can close tickets. The initial ' +
-      'ticket panel is automatically pinned. After accepting a wager, the ' +
-      'bot pins a control message in the ticket channel (decide winner, mark ' +
-      'dodge, close).'
+      'Set the Wager Channel in `/config` → Channels. Anyone can open ' +
+      'player-to-player wager tickets. Mods/Hosters close tickets.'
     );
   container.addTextDisplayComponents(ticketsText);
 
-  // Permissions
+  const statsText = new TextDisplayBuilder()
+    .setContent(
+      '**Statistics Tracked:**\n' +
+      '• Games played, wins, losses\n' +
+      '• Win rate percentage\n' +
+      '• Current and best win streak\n' +
+      '• Wager ELO rating'
+    );
+  container.addTextDisplayComponents(statsText);
+
   const permText = new TextDisplayBuilder()
     .setContent(
-      '**Permissions**\n' +
-      '• Anyone can start a player-to-player wager\n' +
-      '• War wagers are disabled'
+      '**Permissions:**\n' +
+      '• Anyone can start a wager ticket\n' +
+      '• Only staff can decide winner/close'
     );
   container.addTextDisplayComponents(permText);
-
-  // Inactivity Reminders
-  const inactivityText = new TextDisplayBuilder()
-    .setContent(
-      '**Inactivity Reminders**\n' +
-      'The bot sends automatic reminders when a wager ticket becomes ' +
-      'inactive (e.g.: 36h without messages). Both players are mentioned. ' +
-      'There is a cooldown between reminders to avoid spam.'
-    );
-  container.addTextDisplayComponents(inactivityText);
-
-  // Recording Results
-  const recordingText = new TextDisplayBuilder()
-    .setContent(
-      '**Recording Results**\n' +
-      'Use the in-ticket flow: press "Accept Wager" to open the decision ' +
-      'panel. Only hosters/moderators/admins can select the winner.'
-    );
-  container.addTextDisplayComponents(recordingText);
-
-  // Display
-  const displayText = new TextDisplayBuilder()
-    .setContent(
-      '**Display**\n' +
-      'Players can see: `/profile` and `/wagerstats` (detailed stats).'
-    );
-  container.addTextDisplayComponents(displayText);
 
   return container;
 }

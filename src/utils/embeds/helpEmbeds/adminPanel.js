@@ -1,59 +1,69 @@
-const { ContainerBuilder, TextDisplayBuilder, SeparatorBuilder } = require('@discordjs/builders');
+const {
+  ContainerBuilder,
+  TextDisplayBuilder,
+  SeparatorBuilder
+} = require('@discordjs/builders');
+const { SeparatorSpacingSize } = require('discord.js');
 const { colors, emojis } = require('../../../config/botConfig');
 
 function buildAdminPanelEmbed() {
   const container = new ContainerBuilder();
 
-  // Set accent color
   const primaryColor = typeof colors.primary === 'string'
     ? parseInt(colors.primary.replace('#', ''), 16)
     : colors.primary;
   container.setAccentColor(primaryColor);
 
-  // Header
   const titleText = new TextDisplayBuilder()
-    .setContent('# 🛡️ Administration via Panel');
+    .setContent('# 🛡️ Administration Panel');
   const descText = new TextDisplayBuilder()
     .setContent(
-      `${emojis.info} Admins (Administrator permission) or Moderators (defined in \`/config\` → Roles) can use \`/guild panel name:<guild>\` to open and manage ANY guild.`
+      `${emojis.info} Admins or Moderators can manage any guild ` +
+      'via `/guild panel name:<guild>`.'
     );
 
   container.addTextDisplayComponents(titleText, descText);
-  container.addSeparatorComponents(new SeparatorBuilder());
+  container.addSeparatorComponents(
+    new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small)
+  );
 
-  // Available actions
   const actionsText = new TextDisplayBuilder()
     .setContent(
-      '**Available actions**\n' +
-      'Edit roster, transfer leadership, edit data, add co-leader, and change co-leader.'
+      '**Panel Actions:**\n' +
+      '• Edit roster (Main/Sub)\n' +
+      '• Transfer leadership\n' +
+      '• Add/change co-leader\n' +
+      '• Edit guild data'
     );
   container.addTextDisplayComponents(actionsText);
 
-  // Roster invitations
-  const rosterText = new TextDisplayBuilder()
+  const adminCmdsText = new TextDisplayBuilder()
     .setContent(
-      '**Roster invitations**\n' +
-      'When adding someone to Main/Sub roster via the panel, the bot sends a DM invitation with two buttons: Join Guild or Don\'t Join. The user must accept to be added. When the user accepts, the inviter receives a DM confirmation.'
+      '**Admin Commands:**\n' +
+      '`/admin war` — War administration\n' +
+      '`/admin wager` — Wager administration\n' +
+      '`/admin system` — Sync and DB management\n' +
+      '`/config` — Server configuration\n' +
+      '`/cooldown` — Manage user cooldowns\n' +
+      '`/leaderboard refresh` — Refresh rankings\n' +
+      '`/event point` — Event points management'
     );
-  container.addTextDisplayComponents(rosterText);
+  container.addTextDisplayComponents(adminCmdsText);
 
-  // Support Roles Configuration
-  const supportText = new TextDisplayBuilder()
+  const userCmdsText = new TextDisplayBuilder()
     .setContent(
-      '**Support Roles Configuration**\n' +
-      'Configure one or more Support roles in `/config` → Roles. These roles represent your support staff and can be referenced by other features (e.g., tickets, ModMail, or internal tools).'
+      '**User Management:**\n' +
+      '`/user fix-guild` — Fix guild associations\n' +
+      '`/user reset-ratings` — Reset all ELO ratings'
     );
-  container.addTextDisplayComponents(supportText);
+  container.addTextDisplayComponents(userCmdsText);
 
-  // Admin Commands
-  const adminText = new TextDisplayBuilder()
+  const rolesText = new TextDisplayBuilder()
     .setContent(
-      '**Admin Commands (Unified)**\n' +
-      'Use `/admin war mark-dodge`, `/admin war undo-dodge`, ' +
-      '`/admin war revert-result`, and `/admin wager record`. ' +
-      'Legacy commands were consolidated under `/admin`.'
+      '**Role Configuration:**\n' +
+      'Configure Moderators, Hosters and Support roles in `/config` → Roles.'
     );
-  container.addTextDisplayComponents(adminText);
+  container.addTextDisplayComponents(rolesText);
 
   return container;
 }
