@@ -38,8 +38,8 @@ async function handle(interaction) {
       return interaction.editReply({ content: '❌ Only Support, Moderators or Administrators can close this thread.' });
     }
 
-    // Try to send transcript to logs
-    try { await sendTranscriptToLogs(interaction.guild, channel, `Support thread closed by <@${interaction.user.id}>`); } catch (_) {}
+    // Try to send transcript to logs (support threads use general transcript channel)
+    try { await sendTranscriptToLogs(interaction.guild, channel, `Support thread closed by <@${interaction.user.id}>`, null, 'general'); } catch (_) {}
 
     // Delete the thread (this will also delete the interaction message if it's in this thread)
     try {

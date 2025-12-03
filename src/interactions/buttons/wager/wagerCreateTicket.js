@@ -74,8 +74,8 @@ async function handle(interaction) {
 
     try {
       await channel.send({
-        content: `${initiator} vs ${opponent}`,
-        allowedMentions: { parse: [] } // Don't ping - display only
+        content: `<@${initiator.id}> vs <@${opponent.id}>`,
+        allowedMentions: { users: [initiator.id, opponent.id] }
       });
     } catch (_) {}
 

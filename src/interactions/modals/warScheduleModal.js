@@ -42,9 +42,22 @@ async function handle(interaction) {
       return interaction.editReply({ content: guildValidation.message });
     }
 
-    // Get server settings and validate war category
+    // Validate guilds are from same region
+    if (guildA.region !== guildB.region) {
+      return interaction.editReply({
+        content: `❌ Guilds must be from the same region. ` +
+          `${guildA.name} is **${guildA.region}** and ` +
+          `${guildB.name} is **${guildB.region}**.`
+      });
+    }
+
+    // Get server settings and validate war category for the region
     const settings = await getOrCreateServerSettings(interaction.guild.id);
-    const categoryValidation = await validateWarCategory(settings, interaction.guild);
+    const categoryValidation = await validateWarCategory(
+      settings,
+      interaction.guild,
+      guildA.region
+    );
     if (!categoryValidation.valid) {
       return interaction.editReply({ content: categoryValidation.message });
     }

@@ -59,6 +59,11 @@ async function buildGuildDetailDisplayComponents(guild, _discordGuild) {
 
   container.addSectionComponents(leadershipSection);
 
+  // Region section
+  const regionText = new TextDisplayBuilder()
+    .setContent(`**🌍 Region**\n${guild.region || '—'}`);
+  container.addTextDisplayComponents(regionText);
+
   // Statistics section - use individual TextDisplayBuilder components
   const winsLossesText = new TextDisplayBuilder()
     .setContent(

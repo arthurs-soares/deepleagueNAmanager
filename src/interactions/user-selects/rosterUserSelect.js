@@ -6,6 +6,7 @@ const { isGuildAdmin } = require('../../utils/core/permissions');
 const { isGuildLeader } = require('../../utils/guilds/guildMemberManager');
 const { auditAdminAction } = require('../../utils/misc/adminAudit');
 const { sendRosterInvite } = require('../../utils/roster/sendRosterInvite');
+const { recordGuildLeave } = require('../../utils/rate-limiting/guildTransitionCooldown');
 
 /**
  * User Select Menu handler to choose user for roster action
@@ -74,6 +75,16 @@ async function handle(interaction) {
       const embed = createErrorEmbed('Action not completed', msg);
       return interaction.editReply({ components: [embed], flags: MessageFlags.IsComponentsV2 });
     }
+
+    // Record guild transition cooldown for the removed user
+    try {
+      await recordGuildLeave(
+        interaction.guild.id,
+        userId,
+        guildId,
+        new Date()
+      );
+    } catch (_) { /* ignore cooldown errors */ }
 
     // Audit admin action on removal
     const memberSelf = await interaction.guild.members.fetch(interaction.user.id);

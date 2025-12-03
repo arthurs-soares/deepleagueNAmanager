@@ -21,7 +21,10 @@ async function getOrCreateServerSettings(discordGuildId) {
       wagerLeaderboardMessageId: null,
       eventPointsLeaderboardChannelId: null,
       eventPointsLeaderboardMessageId: null,
-      warCategoryId: null,
+      warCategorySAId: null,
+      warCategoryNAEId: null,
+      warCategoryNAWId: null,
+      warCategoryEUId: null,
       wagerCategoryId: null,
       generalTicketsCategoryId: null,
       warTicketsChannelId: null,
@@ -31,7 +34,10 @@ async function getOrCreateServerSettings(discordGuildId) {
       wagerDodgeChannelId: null,
       rosterForumChannelId: null,
       dmWarningChannelId: null,
-      warLogsChannelId: null
+      warLogsChannelId: null,
+      warTranscriptsChannelId: null,
+      wagerTranscriptsChannelId: null,
+      generalTranscriptsChannelId: null
     };
   }
 }
@@ -141,6 +147,27 @@ async function setWagerLeaderboardMessage(discordGuildId, messageId) {
   return doc;
 }
 
+async function setWarTranscriptsChannel(discordGuildId, channelId) {
+  const doc = await getOrCreateServerSettings(discordGuildId);
+  doc.warTranscriptsChannelId = channelId;
+  await doc.save();
+  return doc;
+}
+
+async function setWagerTranscriptsChannel(discordGuildId, channelId) {
+  const doc = await getOrCreateServerSettings(discordGuildId);
+  doc.wagerTranscriptsChannelId = channelId;
+  await doc.save();
+  return doc;
+}
+
+async function setGeneralTranscriptsChannel(discordGuildId, channelId) {
+  const doc = await getOrCreateServerSettings(discordGuildId);
+  doc.generalTranscriptsChannelId = channelId;
+  await doc.save();
+  return doc;
+}
+
 module.exports = {
   getOrCreateServerSettings,
   setWarTicketsChannel,
@@ -157,6 +184,9 @@ module.exports = {
   setGeneralTicketsCategory,
   setWarLogsChannel,
   setEventPointsLeaderboardChannel,
-  setEventPointsLeaderboardMessage
+  setEventPointsLeaderboardMessage,
+  setWarTranscriptsChannel,
+  setWagerTranscriptsChannel,
+  setGeneralTranscriptsChannel
 };
 

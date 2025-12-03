@@ -1,5 +1,5 @@
 const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
-const { isGuildLeader } = require('./guildMemberManager');
+const { getUserRoleLevel } = require('./guildMemberManager');
 
 /**
  * Check if guild has a co-leader
@@ -14,92 +14,76 @@ function hasCoLeader(guildDoc) {
 
 /**
  * Build guild panel components (buttons)
- * - Edit Roster
- * - Transfer Leadership
- * - Edit Data
- * - Add Co-leader (only visible to current leader; always visible to admin)
- * - Change Co-leader (only when co-leader exists)
+ * Hierarchy: Leader (3) > Co-leader (2) > Manager (1) > Member (0)
+ * - Edit Roster: Leader, Co-leader, Manager
+ * - Transfer Leadership: Leader only
+ * - Edit Data: Leader, Co-leader
+ * - Add/Change Co-leader: Leader only (or admin)
  * @param {object} guildDoc - Guild document (Mongo)
  * @param {string} [currentUserId] - ID of the user viewing the panel
- * @param {{isAdmin?:boolean, suppressTransfer?: boolean, suppressEditRoster?: boolean, suppressAddCoLeader?: boolean, suppressEditData?: boolean}} [opts]
+ * @param {{isAdmin?:boolean}} [opts]
  * @returns {import('discord.js').ActionRowBuilder[]}
  */
 function buildGuildPanelComponents(guildDoc, currentUserId, opts = {}) {
   if (!guildDoc || (!guildDoc.id && !guildDoc._id)) return [];
 
-  // Use _id if id is not available (MongoDB documents use _id)
   const guildId = guildDoc.id || guildDoc._id;
+  const isAdmin = Boolean(opts?.isAdmin);
+  const userLevel = currentUserId ? getUserRoleLevel(guildDoc, currentUserId) : 0;
 
-  const editRosterBtn = new ButtonBuilder()
-    .setCustomId(`guild_panel:edit_roster:${guildId}`)
-    .setLabel('Edit Roster')
-    .setStyle(ButtonStyle.Primary);
-
-  const transferLeadBtn = new ButtonBuilder()
-    .setCustomId(`guild_panel:transfer_leadership:${guildId}`)
-    .setLabel('Transfer Leadership')
-    .setStyle(ButtonStyle.Secondary);
-
-  const editDataBtn = new ButtonBuilder()
-    .setCustomId(`guild_panel:edit_data:${guildId}`)
-    .setLabel('Edit Data')
-    .setStyle(ButtonStyle.Success);
-
-  const suppressTransfer = Boolean(opts?.suppressTransfer);
-  const suppressEditRoster = Boolean(opts?.suppressEditRoster);
-
-  const suppressAddCoLeader = Boolean(opts?.suppressAddCoLeader);
-  const suppressEditData = Boolean(opts?.suppressEditData);
-
-
-  // Validate button width to prevent Discord component width errors
-  const { estimateActionRowWidth } = require('../validation/componentValidation');
-  const labels = [
-    ...(suppressEditRoster ? [] : ['Edit Roster']),
-    ...(suppressTransfer ? [] : ['Transfer Leadership']),
-    ...(suppressEditData ? [] : ['Edit Data'])
-  ];
-  const validation = estimateActionRowWidth(labels);
-
-  if (!validation.valid && !suppressTransfer && !suppressEditRoster) {
-    console.warn('Guild panel button width may exceed limits:', validation.message);
-    // Use shorter labels if width is problematic
-    transferLeadBtn.setLabel('Transfer Lead');
-  }
-
-  const rowButtons = [
-    ...(suppressEditRoster ? [] : [editRosterBtn]),
-    ...(suppressTransfer ? [] : [transferLeadBtn]),
-    ...(suppressEditData ? [] : [editDataBtn])
-  ];
+  // Admins have full access
+  const effectiveLevel = isAdmin ? 3 : userLevel;
 
   const rows = [];
-  if (rowButtons.length > 0) {
-    const row1 = new ActionRowBuilder().addComponents(...rowButtons);
-    rows.push(row1);
+  const rowButtons = [];
+
+  // Edit Roster: Level 1+ (Manager, Co-leader, Leader)
+  if (effectiveLevel >= 1) {
+    const editRosterBtn = new ButtonBuilder()
+      .setCustomId(`guild_panel:edit_roster:${guildId}`)
+      .setLabel('Edit Roster')
+      .setStyle(ButtonStyle.Primary);
+    rowButtons.push(editRosterBtn);
   }
 
-  // Show co-leader management button to leader OR always to admin
-  const isAdmin = Boolean(opts?.isAdmin);
-  if (isAdmin || (currentUserId && isGuildLeader(guildDoc, currentUserId))) {
+  // Transfer Leadership: Level 3 only (Leader)
+  if (effectiveLevel >= 3) {
+    const transferLeadBtn = new ButtonBuilder()
+      .setCustomId(`guild_panel:transfer_leadership:${guildId}`)
+      .setLabel('Transfer Leadership')
+      .setStyle(ButtonStyle.Secondary);
+    rowButtons.push(transferLeadBtn);
+  }
+
+  // Edit Data: Level 2+ (Co-leader, Leader)
+  if (effectiveLevel >= 2) {
+    const editDataBtn = new ButtonBuilder()
+      .setCustomId(`guild_panel:edit_data:${guildId}`)
+      .setLabel('Edit Data')
+      .setStyle(ButtonStyle.Success);
+    rowButtons.push(editDataBtn);
+  }
+
+  if (rowButtons.length > 0) {
+    rows.push(new ActionRowBuilder().addComponents(...rowButtons));
+  }
+
+  // Co-leader management: Level 3 only (Leader) or admin
+  if (effectiveLevel >= 3) {
     const coLeaderExists = hasCoLeader(guildDoc);
 
     if (coLeaderExists) {
-      // Show "Change Co-leader" button when co-leader exists
       const changeCoLeaderBtn = new ButtonBuilder()
         .setCustomId(`guild_panel:change_co_leader:${guildId}`)
         .setLabel('Change Co-leader')
         .setStyle(ButtonStyle.Secondary);
       rows.push(new ActionRowBuilder().addComponents(changeCoLeaderBtn));
     } else {
-      // Show "Add Co-leader" button when no co-leader exists (unless suppressed)
-      if (!suppressAddCoLeader) {
-        const addCoLeaderBtn = new ButtonBuilder()
-          .setCustomId(`guild_panel:add_co_leader:${guildId}`)
-          .setLabel('Add Co-leader')
-          .setStyle(ButtonStyle.Secondary);
-        rows.push(new ActionRowBuilder().addComponents(addCoLeaderBtn));
-      }
+      const addCoLeaderBtn = new ButtonBuilder()
+        .setCustomId(`guild_panel:add_co_leader:${guildId}`)
+        .setLabel('Add Co-leader')
+        .setStyle(ButtonStyle.Secondary);
+      rows.push(new ActionRowBuilder().addComponents(addCoLeaderBtn));
     }
   }
 

@@ -2,8 +2,8 @@ const { ChannelType } = require('discord.js');
 const { getOrCreateServerSettings } = require('../../utils/system/serverSettings');
 
 /**
- * Receive CATEGORY selection for war channels, save
- * CustomId: config:channels:selectWarCategory
+ * Receive CATEGORY selection for SA war channels, save
+ * CustomId: config:channels:selectWarCategorySA
  */
 async function handle(interaction) {
   try {
@@ -18,17 +18,16 @@ async function handle(interaction) {
     }
 
     const cfg = await getOrCreateServerSettings(interaction.guild.id);
-    cfg.warCategoryId = channelId;
+    cfg.warCategorySAId = channelId;
     await cfg.save();
 
-    return interaction.editReply({ content: `✅ War category set to <#${channelId}>.` });
+    return interaction.editReply({ content: `✅ SA War category set to <#${channelId}>.` });
   } catch (error) {
-    console.error('Error saving war category:', error);
-    const msg = { content: '❌ Could not save the war category.', ephemeral: true };
+    console.error('Error saving SA war category:', error);
+    const msg = { content: '❌ Could not save the SA war category.', ephemeral: true };
     if (interaction.deferred || interaction.replied) return interaction.followUp(msg);
     return interaction.reply(msg);
   }
 }
 
 module.exports = { handle };
-

@@ -104,7 +104,8 @@ async function handle(interaction) {
           await sendTranscriptToLogs(
             interaction.guild,
             ch,
-            `Wager Ticket ${ticket._id} marked as dodge by <@${dodgerUserId}>`
+            `Wager Ticket ${ticket._id} marked as dodge by <@${dodgerUserId}>`,
+            ticket
           );
         } catch (_) {}
       }

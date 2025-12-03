@@ -28,29 +28,45 @@ async function handle(interaction) {
       return interaction.reply({ components: [embed], flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral });
     }
 
-    // Validar se já é co-líder
+    // Check if selected user is the guild leader
+    if (isGuildLeader(guildDoc, userId)) {
+      const embed = createErrorEmbed(
+        'Invalid selection',
+        'The guild leader cannot be selected as co-leader.'
+      );
+      return interaction.reply({
+        components: [embed],
+        flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral
+      });
+    }
+
+    // Validate if already co-leader
     const members = Array.isArray(guildDoc.members) ? [...guildDoc.members] : [];
     const existing = members.find(m => m.userId === userId);
     if (existing && existing.role === 'vice-lider') {
-      const embed = createErrorEmbed('Already co-leader', 'This user is already a co-leader in the guild.');
-      return interaction.reply({ components: [embed], flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral });
+      const embed = createErrorEmbed(
+        'Already co-leader',
+        'This user is already a co-leader in the guild.'
+      );
+      return interaction.reply({
+        components: [embed],
+        flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral
+      });
     }
 
-    // Check if they are a guild member; if they are in rosters, add as member automatically
+    // Add as member if not already in members array (no roster requirement)
     if (!existing) {
-      const inRoster = (Array.isArray(guildDoc.mainRoster) && guildDoc.mainRoster.includes(userId))
-        || (Array.isArray(guildDoc.subRoster) && guildDoc.subRoster.includes(userId));
-      if (!inRoster) {
-        const embed = createErrorEmbed('Not a member', 'The selected user is not part of this guild.');
-        return interaction.reply({ components: [embed], flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral });
-      }
-      // Adiciona como membro básico
       let username = userId;
       try {
         const user = await interaction.client.users.fetch(userId);
         username = user?.username || username;
       } catch (_) {}
-      const newMember = { userId, username, role: 'membro', joinedAt: new Date() };
+      const newMember = {
+        userId,
+        username,
+        role: 'membro',
+        joinedAt: new Date()
+      };
       guildDoc.members = [...members, newMember];
     }
 

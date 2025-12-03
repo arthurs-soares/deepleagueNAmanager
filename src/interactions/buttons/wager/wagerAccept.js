@@ -98,14 +98,14 @@ async function handle(interaction) {
       try {
         await channel.send({
           content: `📣 ${hostersMention} — wager accepted by <@${interaction.user.id}>. Participants: ${participantsMention}`,
-          allowedMentions: { parse: ['roles'] } // Only ping roles (hosters), not users
+          allowedMentions: { parse: ['roles', 'users'] }
         });
       } catch (_) {}
     } else {
       try {
         await channel.send({
           content: `📣 Wager accepted by <@${interaction.user.id}>. Participants: ${participantsMention}`,
-          allowedMentions: { parse: [] } // Don't ping anyone - display only
+          allowedMentions: { parse: ['users'] }
         });
       } catch (_) {}
     }
@@ -134,6 +134,7 @@ async function handle(interaction) {
     );
 
     const controlRow = new ActionRowBuilder().addComponents(
+      new ButtonBuilder().setCustomId(`wager:claim:${ticket._id}`).setStyle(ButtonStyle.Success).setLabel('Claim Ticket'),
       new ButtonBuilder().setCustomId(`wager:closeTicket:${ticket._id}`).setStyle(ButtonStyle.Secondary).setLabel('Close + Transcript'),
       new ButtonBuilder().setCustomId(`wager:markDodge:${ticket._id}`).setStyle(ButtonStyle.Danger).setLabel('Mark Dodge')
     );

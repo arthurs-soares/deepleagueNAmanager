@@ -6,7 +6,7 @@ const mongoose = require('mongoose');
 const { ContainerBuilder, TextDisplayBuilder } = require('@discordjs/builders');
 const { MessageFlags } = require('discord.js');
 const { isDatabaseConnected, resetConnectionState } = require('../../config/database');
-const { syncRosterForum } = require('../../utils/roster/rosterForumSync');
+const { syncAllRosterForums } = require('../../utils/roster/rosterForumSync');
 const { countGuildsByDiscordGuildId } = require('../../utils/guilds/guildRepository');
 const LoggerService = require('../../services/LoggerService');
 
@@ -18,7 +18,7 @@ const LoggerService = require('../../services/LoggerService');
 async function sync(interaction) {
   try {
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
-    await syncRosterForum(interaction.guild);
+    await syncAllRosterForums(interaction.guild);
     const count = await countGuildsByDiscordGuildId(interaction.guild.id);
     return interaction.editReply({
       content: `✅ Synchronization completed. Guilds processed: ${count}.`

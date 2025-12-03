@@ -14,7 +14,7 @@ function generateChannelName(guildA, guildB) {
 }
 
 /**
- * Collect allowed user IDs from guild members with leader/co-leader roles
+ * Collect allowed user IDs from guild leadership and managers
  * @param {Object} guildA - Guild A document
  * @param {Object} guildB - Guild B document
  * @param {string} initiatorId - User who initiated the war
@@ -23,16 +23,21 @@ function generateChannelName(guildA, guildB) {
 function collectAllowedUsers(guildA, guildB, initiatorId) {
   const allowUserIds = new Set([initiatorId]);
 
-  const pushLeaders = (doc) => {
+  const pushLeadersAndManagers = (doc) => {
+    // Add leaders and co-leaders
     (doc.members || []).forEach(m => {
       if (m.role === 'lider' || m.role === 'vice-lider') {
         allowUserIds.add(m.userId);
       }
     });
+    // Add managers
+    (doc.managers || []).forEach(managerId => {
+      if (managerId) allowUserIds.add(managerId);
+    });
   };
 
-  pushLeaders(guildA);
-  pushLeaders(guildB);
+  pushLeadersAndManagers(guildA);
+  pushLeadersAndManagers(guildB);
 
   return allowUserIds;
 }

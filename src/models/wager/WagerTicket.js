@@ -17,6 +17,9 @@ const wagerTicketSchema = new mongoose.Schema({
   // Acceptance tracking to prevent multiple acceptances
   acceptedAt: { type: Date, default: null },
   acceptedByUserId: { type: String, default: null },
+  // Claim tracking - only the hoster who claimed can manage the ticket
+  claimedAt: { type: Date, default: null },
+  claimedByUserId: { type: String, default: null },
 }, { timestamps: true });
 
 wagerTicketSchema.index({ discordGuildId: 1, channelId: 1 });

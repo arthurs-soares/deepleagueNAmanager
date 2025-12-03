@@ -17,6 +17,7 @@ function resolveSelectHandler(customId) {
   if (customId.startsWith('change_co_leader_user_select:')) return '../interactions/user-selects/changeCoLeaderUserSelect';
   if (customId.startsWith('add_manager_user_select:')) return '../interactions/user-selects/addManagerUserSelect';
 
+  if (customId.startsWith('war:selectRegion:')) return '../interactions/selects/warSelectRegion';
   if (customId.startsWith('war:selectOpponent:')) return '../interactions/selects/warSelectOpponent';
   if (customId.startsWith('war:dodge:select:')) return '../interactions/selects/warDodgeSelect';
   if (customId === 'wager:selectOpponent') return '../interactions/selects/wagerSelectOpponent';
@@ -34,7 +35,10 @@ function resolveSelectHandler(customId) {
   if (customId === 'config:channels:selectRosterForumSA') return '../interactions/channel-selects/configRosterForumSASelect';
   if (customId === 'config:channels:selectRosterForumNA') return '../interactions/channel-selects/configRosterForumNASelect';
   if (customId === 'config:channels:selectRosterForumEU') return '../interactions/channel-selects/configRosterForumEUSelect';
-  if (customId === 'config:channels:selectWarCategory') return '../interactions/channel-selects/configWarCategorySelect';
+  if (customId === 'config:channels:selectWarCategorySA') return '../interactions/channel-selects/configWarCategorySASelect';
+  if (customId === 'config:channels:selectWarCategoryNAE') return '../interactions/channel-selects/configWarCategoryNAESelect';
+  if (customId === 'config:channels:selectWarCategoryNAW') return '../interactions/channel-selects/configWarCategoryNAWSelect';
+  if (customId === 'config:channels:selectWarCategoryEU') return '../interactions/channel-selects/configWarCategoryEUSelect';
   if (customId === 'config:channels:selectWagerCategory') return '../interactions/channel-selects/configWagerCategorySelect';
   if (customId === 'config:channels:selectGeneralTicketsCategory') return '../interactions/channel-selects/configGeneralTicketsCategorySelect';
   if (customId === 'config:channels:selectWarDodge') return '../interactions/channel-selects/configWarDodgeSelect';
@@ -43,6 +47,9 @@ function resolveSelectHandler(customId) {
   if (customId === 'config:channels:selectWagerLeaderboard') return '../interactions/channel-selects/configWagerLeaderboardSelect';
   if (customId === 'config:channels:selectEventPointsLeaderboard') return '../interactions/channel-selects/configEventPointsLeaderboardSelect';
   if (customId === 'config:channels:selectWarLogs') return '../interactions/channel-selects/configWarLogsSelect';
+  if (customId === 'config:channels:selectWarTranscripts') return '../interactions/channel-selects/configWarTranscriptsSelect';
+  if (customId === 'config:channels:selectWagerTranscripts') return '../interactions/channel-selects/configWagerTranscriptsSelect';
+  if (customId === 'config:channels:selectGeneralTranscripts') return '../interactions/channel-selects/configGeneralTranscriptsSelect';
 
   // New dropdown-based configuration selectors
   if (customId === 'config:channels:select') return '../interactions/string-selects/configChannelSelect';

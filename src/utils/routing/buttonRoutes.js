@@ -39,6 +39,7 @@ function resolveButtonHandler(customId) {
   if (customId.startsWith('wager:dodge:apply:')) return '../interactions/buttons/wager/wagerDodgeApply';
   if (customId.startsWith('wager:dodge:cancel:')) return '../interactions/buttons/wager/wagerDodgeCancel';
   if (customId.startsWith('wager:accept:')) return '../interactions/buttons/wager/wagerAccept';
+  if (customId.startsWith('wager:claim:')) return '../interactions/buttons/wager/wagerClaimTicket';
   if (customId.startsWith('wager:decideWinner:')) return '../interactions/buttons/wager/wagerDecideWinner';
 
   // Support
@@ -66,7 +67,6 @@ function resolveButtonHandler(customId) {
   if (customId === 'config:channels:setRosterForum') return '../interactions/buttons/config/configSetRosterForum';
   if (customId === 'config:channels:setWarTickets') return '../interactions/buttons/config/configSetWarTickets';
   if (customId === 'config:channels:setWagerTickets') return '../interactions/buttons/config/configSetWagerTickets';
-  if (customId === 'config:channels:setWarCategory') return '../interactions/buttons/config/configSetWarCategory';
   if (customId === 'config:channels:setWagerCategory') return '../interactions/buttons/config/configSetWagerCategory';
   if (customId === 'config:channels:setLogs') return '../interactions/buttons/config/configSetLogs';
   if (customId === 'config:channels:setLeaderboard') return '../interactions/buttons/config/configSetLeaderboardChannel';

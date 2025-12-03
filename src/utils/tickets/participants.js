@@ -12,16 +12,22 @@ async function getWagerMentions(ticket) {
 }
 
 /**
- * From a guild document, collect leader and co-leader userIds (Portuguese roles)
+ * From a guild document, collect leadership and manager userIds
  * @param {object} guildDoc
  * @returns {string[]} userIds
  */
 function collectLeadershipIds(guildDoc) {
   if (!guildDoc) return [];
+  const ids = [];
+  // Add leaders and co-leaders
   const members = Array.isArray(guildDoc.members) ? guildDoc.members : [];
-  return members
+  members
     .filter(m => m && (m.role === 'lider' || m.role === 'vice-lider') && m.userId)
-    .map(m => m.userId);
+    .forEach(m => ids.push(m.userId));
+  // Add managers
+  const managers = Array.isArray(guildDoc.managers) ? guildDoc.managers : [];
+  managers.filter(Boolean).forEach(managerId => ids.push(managerId));
+  return ids;
 }
 
 /**

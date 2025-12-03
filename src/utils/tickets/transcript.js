@@ -87,7 +87,7 @@ async function createTranscriptAttachment(channel, reason = 'ticket transcript',
       }[ticketMetadata.ticketType] || ticketMetadata.ticketType;
 
       detailsContent += `**Ticket Type:** ${ticketTypeDisplay}\n`;
-      detailsContent += `**Creator:** <@${ticketMetadata.userId}> (${ticketMetadata.userId})\n`;
+      detailsContent += `**Creator:** ${ticketMetadata.userId}\n`;
 
       // Extract support staff (excluding creator)
       const participantIds = new Set();
@@ -98,8 +98,8 @@ async function createTranscriptAttachment(channel, reason = 'ticket transcript',
       }
 
       if (participantIds.size > 0) {
-        const participantMentions = Array.from(participantIds).map(id => `<@${id}>`).join(', ');
-        detailsContent += `**Support Staff:** ${participantMentions}\n`;
+        const participantList = Array.from(participantIds).join(', ');
+        detailsContent += `**Support Staff:** ${participantList}\n`;
       }
     } else if (isWar) {
       // War metadata
@@ -122,16 +122,16 @@ async function createTranscriptAttachment(channel, reason = 'ticket transcript',
       }
 
       if (participantIds.size > 0) {
-        const participantMentions = Array.from(participantIds).map(id => `<@${id}>`).join(', ');
-        detailsContent += `**Participants:** ${participantMentions}\n`;
+        const participantList = Array.from(participantIds).join(', ');
+        detailsContent += `**Participants:** ${participantList}\n`;
       }
     } else if (isWager) {
       // Wager metadata
       const wagerType = ticketMetadata.isWar ? 'War Wager' : 'Regular Wager';
       detailsContent += `**Wager ID:** ${ticketMetadata._id}\n`;
       detailsContent += `**Type:** ${wagerType}\n`;
-      detailsContent += `**Initiator:** <@${ticketMetadata.initiatorUserId}> (${ticketMetadata.initiatorUserId})\n`;
-      detailsContent += `**Opponent:** <@${ticketMetadata.opponentUserId}> (${ticketMetadata.opponentUserId})\n`;
+      detailsContent += `**Initiator:** ${ticketMetadata.initiatorUserId}\n`;
+      detailsContent += `**Opponent:** ${ticketMetadata.opponentUserId}\n`;
 
       // Extract support staff (excluding initiator and opponent)
       const participantIds = new Set();
@@ -144,8 +144,8 @@ async function createTranscriptAttachment(channel, reason = 'ticket transcript',
       }
 
       if (participantIds.size > 0) {
-        const participantMentions = Array.from(participantIds).map(id => `<@${id}>`).join(', ');
-        detailsContent += `**Support Staff:** ${participantMentions}\n`;
+        const participantList = Array.from(participantIds).join(', ');
+        detailsContent += `**Support Staff:** ${participantList}\n`;
       }
     }
 
@@ -157,7 +157,7 @@ async function createTranscriptAttachment(channel, reason = 'ticket transcript',
       detailsContent += `**Closed:** <t:${Math.floor(ticketMetadata.closedAt.getTime() / 1000)}:F>\n`;
     }
     if (ticketMetadata.closedByUserId) {
-      detailsContent += `**Closed By:** <@${ticketMetadata.closedByUserId}> (${ticketMetadata.closedByUserId})\n`;
+      detailsContent += `**Closed By:** ${ticketMetadata.closedByUserId}\n`;
     }
   }
 
@@ -175,31 +175,64 @@ async function createTranscriptAttachment(channel, reason = 'ticket transcript',
 }
 
 /**
- * Send transcript to the configured logs channel. No-ops if logs channel is not set.
+ * Send transcript to the appropriate transcript channel based on ticket type.
+ * Falls back to logs channel if no specific transcript channel is configured.
  * @param {import('discord.js').Guild} guild
  * @param {import('discord.js').TextChannel} ticketChannel
  * @param {string} reason
  * @param {Object} ticketMetadata - Optional ticket metadata (ticket document)
+ * @param {'war'|'wager'|'general'} ticketType - Optional explicit ticket type override
  */
-async function sendTranscriptToLogs(guild, ticketChannel, reason, ticketMetadata = null) {
+async function sendTranscriptToLogs(guild, ticketChannel, reason, ticketMetadata = null, ticketType = null) {
   try {
     if (!guild || !ticketChannel) return false;
     const settings = await getOrCreateServerSettings(guild.id);
-    const logChannelId = settings?.logsChannelId;
-    if (!logChannelId) return false;
-    const logChannel = guild.channels.cache.get(logChannelId);
-    if (!logChannel) return false;
+
+    // Determine ticket type from metadata if not explicitly provided
+    let resolvedTicketType = ticketType;
+    if (!resolvedTicketType && ticketMetadata) {
+      const isGeneralTicket = ticketMetadata.ticketType !== undefined;
+      const isWar = ticketMetadata.guildAId !== undefined;
+      const isWager = ticketMetadata.initiatorUserId !== undefined && !isWar;
+
+      if (isGeneralTicket) resolvedTicketType = 'general';
+      else if (isWar) resolvedTicketType = 'war';
+      else if (isWager) resolvedTicketType = 'wager';
+    }
+
+    // Get the appropriate transcript channel based on ticket type
+    let transcriptChannelId = null;
+    switch (resolvedTicketType) {
+      case 'war':
+        transcriptChannelId = settings?.warTranscriptsChannelId;
+        break;
+      case 'wager':
+        transcriptChannelId = settings?.wagerTranscriptsChannelId;
+        break;
+      case 'general':
+        transcriptChannelId = settings?.generalTranscriptsChannelId;
+        break;
+    }
+
+    // Fallback to logs channel if no specific transcript channel is configured
+    if (!transcriptChannelId) {
+      transcriptChannelId = settings?.logsChannelId;
+    }
+
+    if (!transcriptChannelId) return false;
+    const transcriptChannel = guild.channels.cache.get(transcriptChannelId);
+    if (!transcriptChannel) return false;
 
     const { attachment, info } = await createTranscriptAttachment(ticketChannel, reason, ticketMetadata);
 
     // Send metadata embed (Components v2)
-    await logChannel.send({
+    await transcriptChannel.send({
       components: [info],
       flags: MessageFlags.IsComponentsV2
     });
 
     // Send transcript file in a separate message (Components v2 doesn't support files in same message)
-    await logChannel.send({
+    await transcriptChannel.send({
       files: [attachment]
     });
 

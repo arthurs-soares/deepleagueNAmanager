@@ -42,17 +42,59 @@ function validateGuilds(guildA, guildB) {
 }
 
 /**
- * Validate war category configuration
+ * Map region name to settings field
+ * @param {string} region - Guild region
+ * @returns {string} Settings field name
+ */
+function getRegionCategoryField(region) {
+  const regionMap = {
+    'South America': 'warCategorySAId',
+    'NA East': 'warCategoryNAEId',
+    'NA West': 'warCategoryNAWId',
+    'Europe': 'warCategoryEUId'
+  };
+  return regionMap[region] || null;
+}
+
+/**
+ * Get region display name for error messages
+ * @param {string} region - Guild region
+ * @returns {string} Display name
+ */
+function getRegionDisplayName(region) {
+  const displayMap = {
+    'South America': 'SA',
+    'NA East': 'NAE',
+    'NA West': 'NAW',
+    'Europe': 'EU'
+  };
+  return displayMap[region] || region;
+}
+
+/**
+ * Validate war category configuration by region
  * @param {Object} settings - Server settings
  * @param {Object} guild - Discord guild
+ * @param {string} region - Guild region for category selection
  * @returns {Object} Validation result
  */
-async function validateWarCategory(settings, guild) {
-  const categoryId = settings.warCategoryId;
+async function validateWarCategory(settings, guild, region) {
+  const categoryField = getRegionCategoryField(region);
+  const regionDisplay = getRegionDisplayName(region);
+
+  if (!categoryField) {
+    return {
+      valid: false,
+      message: `❌ Invalid region: ${region}`
+    };
+  }
+
+  const categoryId = settings[categoryField];
   if (!categoryId) {
     return {
       valid: false,
-      message: '❌ War category not configured. Use /config → Channels → Set War Category.'
+      message: `❌ War category for **${regionDisplay}** not configured. ` +
+        `Use /config → Channels → Set War Category (${regionDisplay}).`
     };
   }
 
@@ -68,7 +110,8 @@ async function validateWarCategory(settings, guild) {
   if (!category || category.type !== ChannelType.GuildCategory) {
     return {
       valid: false,
-      message: '❌ War category not configured. Use /config → Channels → Set War Category.'
+      message: `❌ War category for **${regionDisplay}** not configured. ` +
+        `Use /config → Channels → Set War Category (${regionDisplay}).`
     };
   }
 

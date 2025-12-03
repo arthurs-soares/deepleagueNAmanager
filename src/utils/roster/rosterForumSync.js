@@ -2,6 +2,7 @@ const { ChannelType, MessageFlags } = require('discord.js');
 const { getOrCreateServerSettings } = require('../system/serverSettings');
 const Guild = require('../../models/guild/Guild');
 const { buildGuildDetailDisplayComponents } = require('../embeds/guildDetailEmbed');
+const LoggerService = require('../../services/LoggerService');
 
 /**
  * Render the roster post content for a guild using Components v2
@@ -45,11 +46,13 @@ function getForumChannelId(settings, regionFilter) {
 }
 
 /**
- * Encontra o thread de roster pelo título (nome da guilda)
+ * Find roster thread by title in a specific forum
+ * @param {import('discord.js').Guild} discordGuild - Discord guild
+ * @param {string} forumId - Forum channel ID
+ * @param {string} title - Thread title (guild name)
+ * @returns {Promise<Object|null>} Thread object or null
  */
-async function findRosterThread(discordGuild, title) {
-  const settings = await getOrCreateServerSettings(discordGuild.id);
-  const forumId = settings.rosterForumChannelId;
+async function findRosterThreadInForum(discordGuild, forumId, title) {
   const forum = forumId ? discordGuild.channels.cache.get(forumId) : null;
   if (!forum || forum.type !== ChannelType.GuildForum) return null;
   const active = await forum.threads.fetchActive();
@@ -57,18 +60,48 @@ async function findRosterThread(discordGuild, title) {
 }
 
 /**
- * Archive/remove the roster thread for a specific guild, if it exists
+ * Archive/remove the roster thread for a specific guild from ALL roster forums
+ * @param {import('discord.js').Guild} discordGuild - Discord guild
+ * @param {string} guildName - Guild name (thread title)
+ * @returns {Promise<boolean>} True if at least one thread was archived
  */
 async function removeGuildRosterThread(discordGuild, guildName) {
+  let archived = false;
   try {
-    const thread = await findRosterThread(discordGuild, guildName);
-    if (!thread) return false;
-    try { await thread.setArchived(true); } catch (_) {}
-    return true;
+    const settings = await getOrCreateServerSettings(discordGuild.id);
+    const forumIds = [
+      settings.rosterForumChannelId,
+      settings.rosterForumSAChannelId,
+      settings.rosterForumNAChannelId,
+      settings.rosterForumEUChannelId
+    ].filter(Boolean);
+
+    for (const forumId of forumIds) {
+      try {
+        const thread = await findRosterThreadInForum(
+          discordGuild,
+          forumId,
+          guildName
+        );
+        if (thread) {
+          await thread.setArchived(true);
+          archived = true;
+        }
+      } catch (err) {
+        LoggerService.warn('Failed to archive roster thread', {
+          forumId,
+          guildName,
+          error: err?.message
+        });
+      }
+    }
   } catch (error) {
-    console.warn('Failed to remove roster thread:', error?.message);
-    return false;
+    LoggerService.warn('Failed to remove roster threads', {
+      guildName,
+      error: error?.message
+    });
   }
+  return archived;
 }
 
 /**
@@ -128,5 +161,29 @@ async function syncRosterForum(discordGuild, regionFilter = null) {
   }
 }
 
-module.exports = { syncRosterForum, removeGuildRosterThread };
+/**
+ * Synchronize all roster forums (general + region-specific)
+ * @param {import('discord.js').Guild} discordGuild - The Discord guild
+ */
+async function syncAllRosterForums(discordGuild) {
+  const settings = await getOrCreateServerSettings(discordGuild.id);
+
+  // Sync general forum if configured
+  if (settings.rosterForumChannelId) {
+    await syncRosterForum(discordGuild, null);
+  }
+
+  // Sync region-specific forums if configured
+  if (settings.rosterForumSAChannelId) {
+    await syncRosterForum(discordGuild, 'South America');
+  }
+  if (settings.rosterForumNAChannelId) {
+    await syncRosterForum(discordGuild, 'NA');
+  }
+  if (settings.rosterForumEUChannelId) {
+    await syncRosterForum(discordGuild, 'Europe');
+  }
+}
+
+module.exports = { syncRosterForum, syncAllRosterForums, removeGuildRosterThread };
 

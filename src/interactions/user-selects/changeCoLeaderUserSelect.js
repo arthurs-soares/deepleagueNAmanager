@@ -44,26 +44,30 @@ async function handle(interaction) {
 
     // Check if selected user is the guild leader
     if (isGuildLeader(guildDoc, userId)) {
-      const embed = createErrorEmbed('Invalid selection', 'The guild leader cannot be selected as co-leader.');
-      return interaction.reply({ components: [embed], flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral });
+      const embed = createErrorEmbed(
+        'Invalid selection',
+        'The guild leader cannot be selected as co-leader.'
+      );
+      return interaction.reply({
+        components: [embed],
+        flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral
+      });
     }
 
-    // Check if they are a guild member; if they are in rosters, add as member automatically
+    // Add as member if not already in members array (no roster requirement)
     const existing = members.find(m => m.userId === userId);
     if (!existing) {
-      const inRoster = (Array.isArray(guildDoc.mainRoster) && guildDoc.mainRoster.includes(userId))
-        || (Array.isArray(guildDoc.subRoster) && guildDoc.subRoster.includes(userId));
-      if (!inRoster) {
-        const embed = createErrorEmbed('Not a member', 'The selected user is not part of this guild.');
-        return interaction.reply({ components: [embed], flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral });
-      }
-      // Add as basic member
       let username = userId;
       try {
         const user = await interaction.client.users.fetch(userId);
         username = user?.username || username;
       } catch (_) {}
-      const newMember = { userId, username, role: 'membro', joinedAt: new Date() };
+      const newMember = {
+        userId,
+        username,
+        role: 'membro',
+        joinedAt: new Date()
+      };
       guildDoc.members = [...members, newMember];
     }
 

@@ -23,6 +23,74 @@ function isGuildLeader(guildDoc, userId) {
 }
 
 /**
+ * Check if the user is the guild co-leader
+ * @param {object} guildDoc - Guild document
+ * @param {string} userId - Discord user ID
+ * @returns {boolean}
+ */
+function isGuildCoLeader(guildDoc, userId) {
+  if (!guildDoc || !userId) return false;
+  const members = Array.isArray(guildDoc.members) ? guildDoc.members : [];
+  return members.some(m => m.userId === userId && m.role === 'vice-lider');
+}
+
+/**
+ * Check if the user is a guild manager
+ * @param {object} guildDoc - Guild document
+ * @param {string} userId - Discord user ID
+ * @returns {boolean}
+ */
+function isGuildManager(guildDoc, userId) {
+  if (!guildDoc || !userId) return false;
+  const managers = Array.isArray(guildDoc.managers) ? guildDoc.managers : [];
+  return managers.includes(userId);
+}
+
+/**
+ * Get user's role level in the guild hierarchy
+ * Leader = 3, Co-leader = 2, Manager = 1, Member/None = 0
+ * @param {object} guildDoc - Guild document
+ * @param {string} userId - Discord user ID
+ * @returns {number}
+ */
+function getUserRoleLevel(guildDoc, userId) {
+  if (!guildDoc || !userId) return 0;
+  if (isGuildLeader(guildDoc, userId)) return 3;
+  if (isGuildCoLeader(guildDoc, userId)) return 2;
+  if (isGuildManager(guildDoc, userId)) return 1;
+  return 0;
+}
+
+/**
+ * Get role level by userId (for target user in roster)
+ * @param {object} guildDoc - Guild document
+ * @param {string} targetUserId - Target user ID to check
+ * @returns {number}
+ */
+function getTargetRoleLevel(guildDoc, targetUserId) {
+  if (!guildDoc || !targetUserId) return 0;
+  if (isGuildLeader(guildDoc, targetUserId)) return 3;
+  if (isGuildCoLeader(guildDoc, targetUserId)) return 2;
+  if (isGuildManager(guildDoc, targetUserId)) return 1;
+  return 0;
+}
+
+/**
+ * Check if user can manage (add/remove) the target user
+ * Rule: Can only manage users with LOWER role level
+ * @param {object} guildDoc - Guild document
+ * @param {string} actorId - User performing the action
+ * @param {string} targetId - User being affected
+ * @returns {boolean}
+ */
+function canManageUser(guildDoc, actorId, targetId) {
+  const actorLevel = getUserRoleLevel(guildDoc, actorId);
+  const targetLevel = getTargetRoleLevel(guildDoc, targetId);
+  // Can only manage users with strictly lower level
+  return actorLevel > targetLevel;
+}
+
+/**
  * Busca um membro por userId
  * @param {object} guildDoc
  * @param {string} userId
@@ -114,6 +182,11 @@ function ensureLeaderInMembers(guildDoc, leaderName, leaderId) {
 
 module.exports = {
   isGuildLeader,
+  isGuildCoLeader,
+  isGuildManager,
+  getUserRoleLevel,
+  getTargetRoleLevel,
+  canManageUser,
   transferLeadership,
   findMember,
   ensureLeaderInMembers,

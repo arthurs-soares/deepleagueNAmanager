@@ -1,4 +1,11 @@
-const { ContainerBuilder, TextDisplayBuilder, SectionBuilder, SeparatorBuilder } = require('@discordjs/builders');
+const {
+  ContainerBuilder,
+  TextDisplayBuilder,
+  SectionBuilder,
+  SeparatorBuilder,
+  MediaGalleryBuilder,
+  MediaGalleryItemBuilder
+} = require('@discordjs/builders');
 const { ButtonStyle } = require('discord.js');
 
 const { colors } = require('../../config/botConfig');
@@ -38,10 +45,22 @@ async function buildGuildPanelDisplayComponents(guild, _discordGuild) {
   // Single container: merge top and bottom; add a visual separator between
   const container = new ContainerBuilder().setAccentColor(color);
 
-  // Title at the very top
+  // Title section with icon thumbnail if available
   const titleText = new TextDisplayBuilder()
     .setContent(`# ${guild.name}`);
-  container.addTextDisplayComponents(titleText);
+
+  if (guild.iconUrl) {
+    const titleSection = new SectionBuilder()
+      .addTextDisplayComponents(titleText);
+    titleSection.setThumbnailAccessory(thumbnail =>
+      thumbnail
+        .setURL(guild.iconUrl)
+        .setDescription(`${guild.name} icon`)
+    );
+    container.addSectionComponents(titleSection);
+  } else {
+    container.addTextDisplayComponents(titleText);
+  }
 
   // Leadership section
   const leaderText = new TextDisplayBuilder()
@@ -156,6 +175,17 @@ async function buildGuildPanelDisplayComponents(guild, _discordGuild) {
     const footerText = new TextDisplayBuilder()
       .setContent(`*Registered by: ${guild.registeredBy}*`);
     container.addTextDisplayComponents(footerText);
+  }
+
+  // Banner image at the end if configured
+  if (guild.bannerUrl) {
+    const bannerGallery = new MediaGalleryBuilder()
+      .addItems(
+        new MediaGalleryItemBuilder()
+          .setURL(guild.bannerUrl)
+          .setDescription(`${guild.name} banner`)
+      );
+    container.addMediaGalleryComponents(bannerGallery);
   }
 
   return container;

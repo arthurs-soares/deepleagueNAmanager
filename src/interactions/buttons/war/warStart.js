@@ -1,25 +1,34 @@
 const { ActionRowBuilder, StringSelectMenuBuilder } = require('discord.js');
-const { ContainerBuilder, TextDisplayBuilder, SeparatorBuilder } = require('@discordjs/builders');
+const {
+  ContainerBuilder,
+  TextDisplayBuilder,
+  SeparatorBuilder
+} = require('@discordjs/builders');
 const { replyEphemeral } = require('../../../utils/core/reply');
-const { colors } = require('../../../config/botConfig');
-const Guild = require('../../../models/guild/Guild');
+const { colors, emojis } = require('../../../config/botConfig');
 const { findGuildsByUser } = require('../../../utils/guilds/guildManager');
 const { getOrCreateRoleConfig } = require('../../../utils/misc/roleConfig');
 
+const REGIONS = [
+  { label: '🌎 NA East', value: 'NA East' },
+  { label: '🌎 NA West', value: 'NA West' },
+  { label: '🌎 South America', value: 'South America' },
+  { label: '🌍 Europe', value: 'Europe' }
+];
+
 /**
- * Start the war creation flow
+ * Start the war creation flow - shows region selection
  * CustomId: war:start
  */
 async function handle(interaction) {
   try {
-    // Permission: needs to have the configured Leader or Co-leader role
     const cfg = await getOrCreateRoleConfig(interaction.guild.id);
     const leaderId = cfg.leadersRoleId;
     const coLeaderId = cfg.coLeadersRoleId;
 
     if (!leaderId && !coLeaderId) {
       return replyEphemeral(interaction, {
-        content: '⚠️ Leader/Co-leader roles not configured. Ask an administrator to configure in Configure Roles.',
+        content: '⚠️ Leader/Co-leader roles not configured.',
       });
     }
 
@@ -31,23 +40,21 @@ async function handle(interaction) {
 
     if (!hasRole) {
       return replyEphemeral(interaction, {
-        content: '❌ You do not have permission to start wars. You need to have the Leader or Co-leader role.',
+        content: '❌ You need the Leader or Co-leader role.',
       });
     }
 
-    // Find the user's guild(s) in the bot's guild system
-    const userGuilds = await findGuildsByUser(interaction.user.id, interaction.guild.id);
+    const userGuilds = await findGuildsByUser(
+      interaction.user.id,
+      interaction.guild.id
+    );
     if (!userGuilds.length) {
-      return replyEphemeral(interaction, { content: '❌ You are not a leader/co-leader of any registered guild.' });
+      return replyEphemeral(interaction, {
+        content: '❌ You are not a leader/co-leader of any guild.'
+      });
     }
 
     const guildA = userGuilds[0];
-
-    // List available guilds as opponents (same server, excludes own guild)
-    const opponents = await Guild.find({ discordGuildId: interaction.guild.id, _id: { $ne: guildA._id } }).select('name');
-    if (!opponents.length) {
-      return replyEphemeral(interaction, { content: '⚠️ There are no other registered guilds to face.' });
-    }
 
     const container = new ContainerBuilder();
     const primaryColor = typeof colors.primary === 'string'
@@ -56,42 +63,32 @@ async function handle(interaction) {
     container.setAccentColor(primaryColor);
 
     const titleText = new TextDisplayBuilder()
-      .setContent('# War Creation Flow');
+      .setContent(`# ${emojis.war} War Creation Flow`);
 
     const descText = new TextDisplayBuilder()
-      .setContent(`War: ${guildA.name} VS Not Defined`);
+      .setContent(`**Your Guild:** ${guildA.name}`);
 
     container.addTextDisplayComponents(titleText, descText);
-
-    // If there are more than 125 opponents, we must truncate due to Discord limits (max 5 rows * 25 options)
-    if (opponents.length > 125) {
-      const infoText = new TextDisplayBuilder()
-        .setContent('**ℹ️ Info**\nOpponent list was truncated to 125 items due to Discord limits. Please refine using filters/commands.');
-      container.addTextDisplayComponents(infoText);
-    }
-
     container.addSeparatorComponents(new SeparatorBuilder());
 
     const footerText = new TextDisplayBuilder()
-      .setContent('*Select the opponent guild from the menu below*');
+      .setContent('*Select the region of your opponent*');
     container.addTextDisplayComponents(footerText);
 
-    // Discord StringSelectMenu supports up to 25 options, so chunk if needed
-    const { chunkArray } = require('../../../utils/misc/array');
-    const optionChunks = chunkArray(opponents, 25).slice(0, 5);
+    const regionSelect = new StringSelectMenuBuilder()
+      .setCustomId(`war:selectRegion:${guildA._id}`)
+      .setPlaceholder('Select opponent region')
+      .addOptions(REGIONS);
 
-    const rows = optionChunks.map((chunk, idx) => {
-      const select = new StringSelectMenuBuilder()
-        .setCustomId(`war:selectOpponent:${guildA._id}:${idx}`)
-        .setPlaceholder(idx === 0 ? 'Select opponent guild' : `More options (${idx + 1}/${optionChunks.length})`)
-        .addOptions(chunk.map(g => ({ label: g.name, value: String(g._id) })));
-      return new ActionRowBuilder().addComponents(select);
-    });
+    const row = new ActionRowBuilder().addComponents(regionSelect);
 
-    return replyEphemeral(interaction, { components: [container, ...rows] });
+    return replyEphemeral(interaction, { components: [container, row] });
   } catch (error) {
-    console.error('Error in war:start button:', error);
-    return replyEphemeral(interaction, { content: '❌ Could not start the flow.' });
+    const LoggerService = require('../../../services/LoggerService');
+    LoggerService.error('Error in war:start button:', error);
+    return replyEphemeral(interaction, {
+      content: '❌ Could not start the flow.'
+    });
   }
 }
 

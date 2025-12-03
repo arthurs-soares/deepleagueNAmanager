@@ -25,9 +25,24 @@ async function handle(interaction) {
         placeholder: 'Select a text channel for general tickets',
         types: [ChannelType.GuildText]
       },
-      warCategory: {
-        customId: 'config:channels:selectWarCategory',
-        placeholder: 'Select a category for war channels',
+      warCategorySA: {
+        customId: 'config:channels:selectWarCategorySA',
+        placeholder: 'Select a category for SA war channels',
+        types: [ChannelType.GuildCategory]
+      },
+      warCategoryNAE: {
+        customId: 'config:channels:selectWarCategoryNAE',
+        placeholder: 'Select a category for NA East war channels',
+        types: [ChannelType.GuildCategory]
+      },
+      warCategoryNAW: {
+        customId: 'config:channels:selectWarCategoryNAW',
+        placeholder: 'Select a category for NA West war channels',
+        types: [ChannelType.GuildCategory]
+      },
+      warCategoryEU: {
+        customId: 'config:channels:selectWarCategoryEU',
+        placeholder: 'Select a category for EU war channels',
         types: [ChannelType.GuildCategory]
       },
       wagerCategory: {
@@ -78,6 +93,21 @@ async function handle(interaction) {
       warLogs: {
         customId: 'config:channels:selectWarLogs',
         placeholder: 'Select a text channel for war logs',
+        types: [ChannelType.GuildText]
+      },
+      warTranscripts: {
+        customId: 'config:channels:selectWarTranscripts',
+        placeholder: 'Select a text channel for war transcripts',
+        types: [ChannelType.GuildText]
+      },
+      wagerTranscripts: {
+        customId: 'config:channels:selectWagerTranscripts',
+        placeholder: 'Select a text channel for wager transcripts',
+        types: [ChannelType.GuildText]
+      },
+      generalTranscripts: {
+        customId: 'config:channels:selectGeneralTranscripts',
+        placeholder: 'Select a text channel for general ticket transcripts',
         types: [ChannelType.GuildText]
       },
       rosterForum: {

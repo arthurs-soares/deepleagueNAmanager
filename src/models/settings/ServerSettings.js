@@ -17,7 +17,11 @@ const serverSettingsSchema = new mongoose.Schema({
   rosterForumSAChannelId: { type: String, default: null },
   rosterForumNAChannelId: { type: String, default: null },
   rosterForumEUChannelId: { type: String, default: null },
-  warCategoryId: { type: String, default: null },
+  // Region-specific war categories
+  warCategorySAId: { type: String, default: null },
+  warCategoryNAEId: { type: String, default: null },
+  warCategoryNAWId: { type: String, default: null },
+  warCategoryEUId: { type: String, default: null },
   wagerCategoryId: { type: String, default: null },
   generalTicketsCategoryId: { type: String, default: null },
   leaderboardChannelId: { type: String, default: null },
@@ -30,6 +34,10 @@ const serverSettingsSchema = new mongoose.Schema({
   wagerDodgeChannelId: { type: String, default: null },
   dmWarningChannelId: { type: String, default: null },
   warLogsChannelId: { type: String, default: null },
+  // Transcript channels (separate from logs)
+  warTranscriptsChannelId: { type: String, default: null },
+  wagerTranscriptsChannelId: { type: String, default: null },
+  generalTranscriptsChannelId: { type: String, default: null },
 }, { timestamps: true });
 
 module.exports = mongoose.models.ServerSettings || mongoose.model('ServerSettings', serverSettingsSchema);

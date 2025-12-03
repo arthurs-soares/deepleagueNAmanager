@@ -88,7 +88,8 @@ async function handle(interaction) {
             interaction.guild,
             warChannel,
             `War ${war._id} marked as dodge by ${dodgerName}` +
-            ` (by <@${interaction.user.id}>)`
+            ` (by <@${interaction.user.id}>)`,
+            war
           );
         } catch (_) {}
       }
