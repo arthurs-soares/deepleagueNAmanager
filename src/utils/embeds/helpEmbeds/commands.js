@@ -41,16 +41,6 @@ function buildCommandsEmbed(_client) {
     );
   container.addTextDisplayComponents(guildText);
 
-  // War commands
-  const warText = new TextDisplayBuilder()
-    .setContent(
-      '### ⚔️ War\n' +
-      '`/war log` — Log a war result\n' +
-      '`/war edit` — Edit an existing war\n' +
-      '`/war tickets` — Setup war ticket channel'
-    );
-  container.addTextDisplayComponents(warText);
-
   // Wager commands
   const wagerText = new TextDisplayBuilder()
     .setContent(

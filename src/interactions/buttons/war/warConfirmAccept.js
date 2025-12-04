@@ -1,5 +1,5 @@
 const { ChannelType, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags } = require('discord.js');
-const { ContainerBuilder, TextDisplayBuilder } = require('@discordjs/builders');
+const { ContainerBuilder, TextDisplayBuilder, SectionBuilder, SeparatorBuilder } = require('@discordjs/builders');
 const War = require('../../../models/war/War');
 const Guild = require('../../../models/guild/Guild');
 const { colors } = require('../../../config/botConfig');
@@ -8,6 +8,70 @@ const { getOpponentGuildId } = require('../../../utils/war/warUtils');
 const { getOrCreateRoleConfig } = require('../../../utils/misc/roleConfig');
 const { sendAndPin } = require('../../../utils/tickets/pinUtils');
 const { createDisabledWarConfirmationButtons } = require('../../../utils/war/warEmbedBuilder');
+const { createSafeActionRow } = require('../../../utils/validation/componentValidation');
+
+/**
+ * Build the war result container with winner buttons
+ * @param {Object} war - War document
+ * @param {Object} guildA - Guild A document
+ * @param {Object} guildB - Guild B document
+ * @returns {ContainerBuilder}
+ */
+function buildWarResultContainer(war, guildA, guildB) {
+  const container = new ContainerBuilder();
+  const primaryColor = typeof colors.primary === 'string'
+    ? parseInt(colors.primary.replace('#', ''), 16)
+    : colors.primary;
+  container.setAccentColor(primaryColor);
+
+  const titleText = new TextDisplayBuilder().setContent('# ⚔️ War Result');
+  const descText = new TextDisplayBuilder()
+    .setContent(
+      `War between ${guildA?.name} and ${guildB?.name}\n` +
+      `Date/Time: <t:${Math.floor(new Date(war.scheduledAt).getTime()/1000)}:F>\n\n` +
+      'Use the buttons below to declare the winner (Hosters/Moderators/Admins only).'
+    );
+
+  container.addTextDisplayComponents(titleText, descText);
+  container.addSeparatorComponents(new SeparatorBuilder());
+
+  const buttonData = [
+    { customId: `war:declareWinner:${war._id}:${guildA._id}`, style: ButtonStyle.Success, label: `${guildA?.name} Won` },
+    { customId: `war:declareWinner:${war._id}:${guildB._id}`, style: ButtonStyle.Success, label: `${guildB?.name} Won` }
+  ];
+  const safeResult = createSafeActionRow(buttonData, { maxLabelLength: 18 });
+
+  // Guild A section
+  const guildASection = new SectionBuilder();
+  guildASection.addTextDisplayComponents(new TextDisplayBuilder().setContent(`**${guildA?.name}**`));
+  guildASection.setButtonAccessory(btn =>
+    btn.setCustomId(safeResult.buttons[0].customId).setStyle(safeResult.buttons[0].style).setLabel(safeResult.buttons[0].label)
+  );
+  container.addSectionComponents(guildASection);
+
+  // Guild B section
+  const guildBSection = new SectionBuilder();
+  guildBSection.addTextDisplayComponents(new TextDisplayBuilder().setContent(`**${guildB?.name}**`));
+  guildBSection.setButtonAccessory(btn =>
+    btn.setCustomId(safeResult.buttons[1].customId).setStyle(safeResult.buttons[1].style).setLabel(safeResult.buttons[1].label)
+  );
+  container.addSectionComponents(guildBSection);
+
+  return container;
+}
+
+/**
+ * Build control row buttons for war ticket
+ * @param {string} warId - War ID
+ * @returns {ActionRowBuilder}
+ */
+function buildControlRow(warId) {
+  return new ActionRowBuilder().addComponents(
+    new ButtonBuilder().setCustomId(`war:claim:${warId}`).setStyle(ButtonStyle.Success).setLabel('Claim Ticket'),
+    new ButtonBuilder().setCustomId(`war:confirm:dodge:${warId}`).setStyle(ButtonStyle.Danger).setLabel('Mark Dodge'),
+    new ButtonBuilder().setCustomId(`war:closeTicket:${warId}`).setStyle(ButtonStyle.Secondary).setLabel('Close + Transcript')
+  );
+}
 
 /**
  * Accept the war (only leaders/co-leaders of the opponent guild)
@@ -100,56 +164,14 @@ async function handle(interaction) {
         try {
           await warChannel.send({
             content: `✅ ${userOpponentGuild.name} accepted the war.${hosterMentions ? ` Calling hosters: ${hosterMentions}` : ''}`,
-            allowedMentions: { parse: ['roles'] } // Only ping roles (hosters)
+            allowedMentions: { parse: ['roles'] }
           });
         } catch (_) {}
 
-        const resultContainer = new ContainerBuilder();
-        const primaryColor = typeof colors.primary === 'string'
-          ? parseInt(colors.primary.replace('#', ''), 16)
-          : colors.primary;
-        resultContainer.setAccentColor(primaryColor);
+        const resultContainer = buildWarResultContainer(war, guildA, guildB);
+        const controlRow = buildControlRow(war._id);
 
-        const titleText = new TextDisplayBuilder()
-          .setContent('# ⚔️ War Result');
-
-        const descText = new TextDisplayBuilder()
-          .setContent(
-            `War between ${guildA?.name} and ${guildB?.name}\n` +
-            `Date/Time: <t:${Math.floor(new Date(war.scheduledAt).getTime()/1000)}:F>\n\n` +
-            'Use the buttons below to declare the winner (Hosters/Moderators/Admins only).'
-          );
-
-        resultContainer.addTextDisplayComponents(titleText, descText);
-
-        // Safely create guild winner buttons with length validation
-        const { createSafeActionRow } = require('../../../utils/validation/componentValidation');
-        const buttonData = [
-          {
-            customId: `war:declareWinner:${war._id}:${guildA._id}`,
-            style: ButtonStyle.Success,
-            label: `${guildA?.name} Won`
-          },
-          {
-            customId: `war:declareWinner:${war._id}:${guildB._id}`,
-            style: ButtonStyle.Success,
-            label: `${guildB?.name} Won`
-          }
-        ];
-
-        const safeResult = createSafeActionRow(buttonData, { maxLabelLength: 18 });
-        const decisionRow = new ActionRowBuilder().addComponents(
-          new ButtonBuilder().setCustomId(safeResult.buttons[0].customId).setStyle(safeResult.buttons[0].style).setLabel(safeResult.buttons[0].label),
-          new ButtonBuilder().setCustomId(safeResult.buttons[1].customId).setStyle(safeResult.buttons[1].style).setLabel(safeResult.buttons[1].label)
-        );
-
-        const controlRow = new ActionRowBuilder().addComponents(
-          new ButtonBuilder().setCustomId(`war:claim:${war._id}`).setStyle(ButtonStyle.Success).setLabel('Claim Ticket'),
-          new ButtonBuilder().setCustomId(`war:confirm:dodge:${war._id}`).setStyle(ButtonStyle.Danger).setLabel('Mark Dodge'),
-          new ButtonBuilder().setCustomId(`war:closeTicket:${war._id}`).setStyle(ButtonStyle.Secondary).setLabel('Close + Transcript')
-        );
-
-        await sendAndPin(warChannel, { components: [resultContainer, decisionRow, controlRow], flags: MessageFlags.IsComponentsV2 }, { unpinOld: true });
+        await sendAndPin(warChannel, { components: [resultContainer, controlRow], flags: MessageFlags.IsComponentsV2 }, { unpinOld: true });
       }
     } catch (_) {}
 

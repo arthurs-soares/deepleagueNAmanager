@@ -204,8 +204,7 @@ async function applyAutoDodge(client, ticket, guild) {
         guild,
         dodgerUser,
         opponentUser,
-        client.user.id,
-        '⏰ **Auto-Dodge** (2 weeks timeout)'
+        client.user.id
       );
 
       // Delete the channel after a short delay

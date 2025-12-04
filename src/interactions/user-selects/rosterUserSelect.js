@@ -1,12 +1,26 @@
-const { MessageFlags } = require('discord.js');
-const { createErrorEmbed, createSuccessEmbed } = require('../../utils/embeds/embedBuilder');
+const {
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+  MessageFlags
+} = require('discord.js');
+const {
+  ContainerBuilder,
+  TextDisplayBuilder,
+  SeparatorBuilder
+} = require('@discordjs/builders');
+const {
+  createErrorEmbed,
+  createSuccessEmbed
+} = require('../../utils/embeds/embedBuilder');
 const { removeFromRoster, getGuildById } = require('../../utils/roster/rosterManager');
 const { formatRosterCounts } = require('../../utils/roster/rosterUtils');
 const { isGuildAdmin } = require('../../utils/core/permissions');
 const { isGuildLeader } = require('../../utils/guilds/guildMemberManager');
 const { auditAdminAction } = require('../../utils/misc/adminAudit');
-const { sendRosterInvite } = require('../../utils/roster/sendRosterInvite');
 const { recordGuildLeave } = require('../../utils/rate-limiting/guildTransitionCooldown');
+const { colors, emojis } = require('../../config/botConfig');
+const LoggerService = require('../../services/LoggerService');
 
 /**
  * User Select Menu handler to choose user for roster action
@@ -45,25 +59,58 @@ async function handle(interaction) {
     const guildDoc = await getGuildById(guildId);
 
     if (conf.type === 'add') {
-      // Send DM invite instead of immediate add
-      const invite = await sendRosterInvite(
-        interaction.client,
-        userId,
-        guildDoc,
-        conf.roster,
-        { id: interaction.user.id, username: interaction.user.username }
-      );
+      // Build confirmation before sending DM invite
+      let targetUser = null;
+      try {
+        targetUser = await interaction.client.users.fetch(userId);
+      } catch (_) { /* ignore */ }
 
-      if (!invite.ok) {
-        const embed = createErrorEmbed('Could not send invite', invite.error || 'Failed to deliver the DM to the user.');
-        return interaction.editReply({ components: [embed], flags: MessageFlags.IsComponentsV2 });
-      }
+      const username = targetUser?.username || userId;
+      const rosterLabel = conf.roster === 'main' ? 'Main Roster' : 'Sub Roster';
 
-      const embed = createSuccessEmbed(
-        'Invitation sent',
-        `A DM invitation was sent to <@${userId}> to join the ${conf.roster === 'main' ? 'Main Roster' : 'Sub Roster'} of "${guildDoc?.name}".\nThey must accept to be added.`
-      );
-      return interaction.editReply({ components: [embed], flags: MessageFlags.IsComponentsV2 });
+      const container = new ContainerBuilder();
+      const warningColor = typeof colors.warning === 'string'
+        ? parseInt(colors.warning.replace('#', ''), 16)
+        : colors.warning;
+      container.setAccentColor(warningColor);
+
+      const titleText = new TextDisplayBuilder()
+        .setContent(`# ${emojis.warning || '⚠️'} Confirm Roster Invite`);
+
+      const descText = new TextDisplayBuilder()
+        .setContent(
+          `Are you sure you want to invite the following user ` +
+          `to join the **${rosterLabel}** of **${guildDoc?.name || 'Unknown'}**?`
+        );
+
+      const userText = new TextDisplayBuilder()
+        .setContent(
+          `**User:** <@${userId}>\n` +
+          `**Username:** ${username}\n` +
+          `**Roster:** ${rosterLabel}`
+        );
+
+      container.addTextDisplayComponents(titleText);
+      container.addSeparatorComponents(new SeparatorBuilder());
+      container.addTextDisplayComponents(descText);
+      container.addTextDisplayComponents(userText);
+
+      const confirmBtn = new ButtonBuilder()
+        .setCustomId(`rosterInvite:sendConfirm:${guildId}:${conf.roster}:${userId}:yes`)
+        .setLabel('Confirm')
+        .setStyle(ButtonStyle.Success);
+
+      const cancelBtn = new ButtonBuilder()
+        .setCustomId(`rosterInvite:sendConfirm:${guildId}:${conf.roster}:${userId}:no`)
+        .setLabel('Cancel')
+        .setStyle(ButtonStyle.Secondary);
+
+      const row = new ActionRowBuilder().addComponents(confirmBtn, cancelBtn);
+
+      return interaction.editReply({
+        components: [container, row],
+        flags: MessageFlags.IsComponentsV2
+      });
     }
 
     // Remove flows still execute immediately
@@ -105,7 +152,7 @@ async function handle(interaction) {
     const embed = createSuccessEmbed('Success', `${result.message}\n\n${counts}`);
     return interaction.editReply({ components: [embed], flags: MessageFlags.IsComponentsV2 });
   } catch (error) {
-    console.error('Roster User Select error:', error);
+    LoggerService.error('Roster User Select error:', { error });
     const embed = createErrorEmbed('Error', 'Could not process this action.');
     try {
       if (interaction.deferred || interaction.replied) {

@@ -1,6 +1,6 @@
 const { MessageFlags, ButtonStyle } = require('discord.js');
 const { ContainerBuilder, TextDisplayBuilder, SeparatorBuilder, SectionBuilder, MediaGalleryBuilder, MediaGalleryItemBuilder } = require('@discordjs/builders');
-const { colors, emojis } = require('../../config/botConfig');
+const { emojis } = require('../../config/botConfig');
 
 /**
  * Build wager tickets panel (Components v2 with inline buttons)
@@ -10,16 +10,14 @@ function buildWagerTicketsPanel() {
   const container = new ContainerBuilder();
 
   // Set accent color
-  const primaryColor = typeof colors.primary === 'string'
-    ? parseInt(colors.primary.replace('#', ''), 16)
-    : colors.primary;
-  container.setAccentColor(primaryColor);
+  const wagerColor = 0x465d49;
+  container.setAccentColor(wagerColor);
 
   // Banner image at the top
   const bannerGallery = new MediaGalleryBuilder()
     .addItems(
       new MediaGalleryItemBuilder()
-        .setURL('https://media.discordapp.net/attachments/1371286837032648807/1422995648231510138/wagertickets.jpg')
+        .setURL('https://cdn.discordapp.com/attachments/1353102690040807556/1446146291057819668/image.png?ex=6932ec2f&is=69319aaf&hm=270fc04872b1035a696f9473eeb2186a3c4fcd46835b18e506331b032886b27f&')
         .setDescription('Wager Tickets Banner')
     );
 
@@ -27,7 +25,7 @@ function buildWagerTicketsPanel() {
 
   // Header
   const titleText = new TextDisplayBuilder()
-    .setContent('# 🌊 Wager Tickets');
+    .setContent(`# ${emojis.depthsWager} Wager Tickets`);
 
   const descText = new TextDisplayBuilder()
     .setContent(
@@ -44,7 +42,7 @@ function buildWagerTicketsPanel() {
   const startWagerSection = new SectionBuilder();
   const startWagerText = new TextDisplayBuilder()
     .setContent(
-      '**🌊 Start Wager**\n' +
+      '**⚔️ Start Wager**\n' +
       'Create a new wager between players'
     );
   startWagerSection.addTextDisplayComponents(startWagerText);
@@ -59,7 +57,7 @@ function buildWagerTicketsPanel() {
   container.addSeparatorComponents(new SeparatorBuilder());
 
   const footerText = new TextDisplayBuilder()
-    .setContent('*🌊 Wager System*');
+    .setContent('Wager System');
   container.addTextDisplayComponents(footerText);
 
   return container;

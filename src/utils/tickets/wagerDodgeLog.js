@@ -9,9 +9,8 @@ const LoggerService = require('../../services/LoggerService');
  * @param {import('discord.js').User} dodgerUser - User who dodged
  * @param {import('discord.js').User} opponentUser - Opponent user
  * @param {string} markedByUserId - ID of user/bot who marked the dodge
- * @param {string} [contentPrefix] - Optional content prefix
  */
-async function sendWagerDodgeLog(guild, dodgerUser, opponentUser, markedByUserId, contentPrefix) {
+async function sendWagerDodgeLog(guild, dodgerUser, opponentUser, markedByUserId) {
   try {
     const serverCfg = await getOrCreateServerSettings(guild.id);
     if (!serverCfg?.wagerDodgeChannelId) {
@@ -47,10 +46,10 @@ async function sendWagerDodgeLog(guild, dodgerUser, opponentUser, markedByUserId
     );
 
     // Send container with attachment in same message for attachment:// to work
+    // Note: content cannot be used with MessageFlags.IsComponentsV2
     await dodgeChannel.send({
       components: [container],
       flags: MessageFlags.IsComponentsV2,
-      content: contentPrefix || undefined,
       files: attachment ? [attachment] : []
     });
 

@@ -1,5 +1,5 @@
 const { ActionRowBuilder, ButtonBuilder, ButtonStyle, PermissionFlagsBits, MessageFlags } = require('discord.js');
-const { ContainerBuilder, TextDisplayBuilder } = require('@discordjs/builders');
+const { ContainerBuilder, TextDisplayBuilder, SectionBuilder, SeparatorBuilder } = require('@discordjs/builders');
 const WagerTicket = require('../../../models/wager/WagerTicket');
 const { getOrCreateRoleConfig } = require('../../../utils/misc/roleConfig');
 const { colors } = require('../../../config/botConfig');
@@ -118,7 +118,7 @@ async function handle(interaction) {
     container.setAccentColor(primaryColor);
 
     const titleText = new TextDisplayBuilder()
-      .setContent('# 🧭 Winner Decision');
+      .setContent('# ⚔️ Winner Decision');
 
     const descText = new TextDisplayBuilder()
       .setContent('Select the winner (Depths). Only Hosters/Moderators can click.');
@@ -127,11 +127,33 @@ async function handle(interaction) {
       .setContent(`*<t:${Math.floor(Date.now() / 1000)}:F>*`);
 
     container.addTextDisplayComponents(titleText, descText, timestampText);
+    container.addSeparatorComponents(new SeparatorBuilder());
 
-    const decisionRow = new ActionRowBuilder().addComponents(
-      new ButtonBuilder().setCustomId(`wager:decideWinner:${ticket._id}:initiator:depths`).setStyle(ButtonStyle.Success).setLabel('Initiator Won'),
-      new ButtonBuilder().setCustomId(`wager:decideWinner:${ticket._id}:opponent:depths`).setStyle(ButtonStyle.Primary).setLabel('Opponent Won')
+    // Initiator winner section with inline button
+    const initiatorSection = new SectionBuilder();
+    const initiatorText = new TextDisplayBuilder()
+      .setContent(`**Initiator:** <@${ticket.initiatorUserId}>`);
+    initiatorSection.addTextDisplayComponents(initiatorText);
+    initiatorSection.setButtonAccessory(button =>
+      button
+        .setCustomId(`wager:decideWinner:${ticket._id}:initiator:depths`)
+        .setStyle(ButtonStyle.Success)
+        .setLabel('Initiator Won')
     );
+    container.addSectionComponents(initiatorSection);
+
+    // Opponent winner section with inline button
+    const opponentSection = new SectionBuilder();
+    const opponentText = new TextDisplayBuilder()
+      .setContent(`**Opponent:** <@${ticket.opponentUserId}>`);
+    opponentSection.addTextDisplayComponents(opponentText);
+    opponentSection.setButtonAccessory(button =>
+      button
+        .setCustomId(`wager:decideWinner:${ticket._id}:opponent:depths`)
+        .setStyle(ButtonStyle.Primary)
+        .setLabel('Opponent Won')
+    );
+    container.addSectionComponents(opponentSection);
 
     const controlRow = new ActionRowBuilder().addComponents(
       new ButtonBuilder().setCustomId(`wager:claim:${ticket._id}`).setStyle(ButtonStyle.Success).setLabel('Claim Ticket'),
@@ -139,7 +161,7 @@ async function handle(interaction) {
       new ButtonBuilder().setCustomId(`wager:markDodge:${ticket._id}`).setStyle(ButtonStyle.Danger).setLabel('Mark Dodge')
     );
 
-    await sendAndPin(channel, { components: [container, decisionRow, controlRow], flags: MessageFlags.IsComponentsV2 }, { unpinOld: true });
+    await sendAndPin(channel, { components: [container, controlRow], flags: MessageFlags.IsComponentsV2 }, { unpinOld: true });
 
     return interaction.editReply({ content: '✅ Pinned panel sent to ticket channel.' });
   } catch (error) {

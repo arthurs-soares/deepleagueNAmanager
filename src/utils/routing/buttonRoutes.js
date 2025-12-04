@@ -25,6 +25,8 @@ function resolveButtonHandler(customId) {
   if (customId.startsWith('war:confirm:dodge:')) return '../interactions/buttons/war/warConfirmDodge';
   if (customId.startsWith('war:dodge:apply:')) return '../interactions/buttons/war/warDodgeApply';
   if (customId.startsWith('war:dodge:cancel:')) return '../interactions/buttons/war/warDodgeCancel';
+  if (customId.startsWith('war:declareWinner:confirm:')) return '../interactions/buttons/war/warDeclareWinnerConfirm';
+  if (customId.startsWith('war:declareWinner:cancel:')) return '../interactions/buttons/war/warDeclareWinnerCancel';
   if (customId.startsWith('war:declareWinner:')) return '../interactions/buttons/war/warDeclareWinner';
   if (customId.startsWith('war:claim:')) return '../interactions/buttons/war/warClaimTicket';
   if (customId.startsWith('war:closeTicket:confirm:')) return '../interactions/buttons/war/warCloseTicketConfirm';
@@ -42,6 +44,8 @@ function resolveButtonHandler(customId) {
   if (customId.startsWith('wager:dodge:cancel:')) return '../interactions/buttons/wager/wagerDodgeCancel';
   if (customId.startsWith('wager:accept:')) return '../interactions/buttons/wager/wagerAccept';
   if (customId.startsWith('wager:claim:')) return '../interactions/buttons/wager/wagerClaimTicket';
+  if (customId.startsWith('wager:decideWinner:confirm:')) return '../interactions/buttons/wager/wagerDecideWinnerConfirm';
+  if (customId.startsWith('wager:decideWinner:cancel:')) return '../interactions/buttons/wager/wagerDecideWinnerCancel';
   if (customId.startsWith('wager:decideWinner:')) return '../interactions/buttons/wager/wagerDecideWinner';
 
   // Support
@@ -52,6 +56,7 @@ function resolveButtonHandler(customId) {
   if (customId.startsWith('viewGuild:back:')) return '../interactions/buttons/guild/viewGuildBack';
 
   // Roster invite flow
+  if (customId.startsWith('rosterInvite:sendConfirm:')) return '../interactions/buttons/roster/inviteSendConfirm';
   if (customId.startsWith('rosterInvite:accept:')) return '../interactions/buttons/roster/inviteAccept';
   if (customId.startsWith('rosterInvite:decline:')) return '../interactions/buttons/roster/inviteDecline';
 

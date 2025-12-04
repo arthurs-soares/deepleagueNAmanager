@@ -17,21 +17,12 @@ function buildWarSystemEmbed() {
   const titleText = new TextDisplayBuilder()
     .setContent('# ⚔️ War System');
   const descText = new TextDisplayBuilder()
-    .setContent('Complete ticket flow and war management.');
+    .setContent('War ticket flow and management.');
 
   container.addTextDisplayComponents(titleText, descText);
   container.addSeparatorComponents(
     new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small)
   );
-
-  const commandsText = new TextDisplayBuilder()
-    .setContent(
-      '**Commands:**\n' +
-      '`/war log` — Log a war result\n' +
-      '`/war edit` — Edit an existing war\n' +
-      '`/war tickets` — Setup war ticket channel'
-    );
-  container.addTextDisplayComponents(commandsText);
 
   const ticketsText = new TextDisplayBuilder()
     .setContent(

@@ -26,6 +26,8 @@ const LoggerService = require('../../services/LoggerService');
  */
 async function handleProfile(interaction) {
   try {
+    await interaction.deferReply();
+
     const target = interaction.options.getUser('target') || interaction.user;
     const { container, components } = await buildUserProfileDisplayComponents(
       interaction.guild,
@@ -33,13 +35,15 @@ async function handleProfile(interaction) {
       target
     );
 
-    await interaction.reply({
+    await interaction.editReply({
       components: [container, ...components],
       flags: MessageFlags.IsComponentsV2
     });
   } catch (error) {
     LoggerService.error('Error in /user profile:', { error: error.message });
-    return interaction.reply({
+    const replied = interaction.deferred || interaction.replied;
+    const method = replied ? 'editReply' : 'reply';
+    return interaction[method]({
       content: '❌ An error occurred.',
       flags: MessageFlags.Ephemeral
     });

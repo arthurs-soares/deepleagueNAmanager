@@ -1,35 +1,51 @@
-const { PermissionFlagsBits, MessageFlags } = require('discord.js');
-const { buildWarCloseButtonRow } = require('../../../utils/tickets/closeButtons');
+const {
+  PermissionFlagsBits,
+  MessageFlags,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle
+} = require('discord.js');
+const {
+  ContainerBuilder,
+  TextDisplayBuilder
+} = require('@discordjs/builders');
 const { replyEphemeral } = require('../../../utils/core/reply');
 const War = require('../../../models/war/War');
 const Guild = require('../../../models/guild/Guild');
-const { sendLog } = require('../../../utils/core/logger');
 const { getOrCreateRoleConfig } = require('../../../utils/misc/roleConfig');
+const { colors } = require('../../../config/botConfig');
+const LoggerService = require('../../../services/LoggerService');
 
 /**
- * Declare the war winner (hosters/moderators/admins)
+ * Show confirmation dialog before declaring war winner
  * CustomId: war:declareWinner:<warId>:<winnerGuildId>
  */
 async function handle(interaction) {
   try {
-    // Immediate defer to avoid token expiration
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     const member = await interaction.guild.members.fetch(interaction.user.id);
     const rolesCfg = await getOrCreateRoleConfig(interaction.guild.id);
-    const allowedRoleIds = new Set([...(rolesCfg?.hostersRoleIds || []), ...(rolesCfg?.moderatorsRoleIds || [])]);
+    const allowedRoleIds = new Set([
+      ...(rolesCfg?.hostersRoleIds || []),
+      ...(rolesCfg?.moderatorsRoleIds || [])
+    ]);
 
     const hasAdmin = member.permissions.has(PermissionFlagsBits.Administrator);
-    const hasAllowedRole = member.roles.cache.some(r => allowedRoleIds.has(r.id));
+    const hasRole = member.roles.cache.some(r => allowedRoleIds.has(r.id));
 
-    if (!hasAdmin && !hasAllowedRole) {
-      return interaction.editReply({ content: '❌ Only hosters, moderators or administrators can declare the winner.' });
+    if (!hasAdmin && !hasRole) {
+      return interaction.editReply({
+        content: '❌ Only hosters, moderators or admins can declare.'
+      });
     }
 
     const [, , warId, winnerGuildId] = interaction.customId.split(':');
     const war = await War.findById(warId);
     if (!war || war.status !== 'aberta') {
-      return interaction.editReply({ content: '⚠️ Invalid war or already finished.' });
+      return interaction.editReply({
+        content: '⚠️ Invalid war or already finished.'
+      });
     }
 
     const [guildA, guildB, winner] = await Promise.all([
@@ -38,65 +54,61 @@ async function handle(interaction) {
       Guild.findById(winnerGuildId),
     ]);
 
-    if (!winner) return interaction.editReply({ content: '❌ Invalid winner guild.' });
+    if (!winner) {
+      return interaction.editReply({ content: '❌ Invalid winner guild.' });
+    }
 
-    // Update stats
-    const loserId = String(winner._id) === String(guildA._id) ? guildB._id : guildA._id;
-    const [loser] = await Promise.all([
-      Guild.findById(loserId)
-    ]);
+    const loserName = String(winner._id) === String(guildA._id)
+      ? (guildB?.name || 'Unknown')
+      : (guildA?.name || 'Unknown');
 
-    winner.wins = (winner.wins || 0) + 1;
-    loser.losses = (loser.losses || 0) + 1;
+    // Build confirmation container
+    const container = new ContainerBuilder();
+    const warningColor = typeof colors.warning === 'string'
+      ? parseInt(colors.warning.replace('#', ''), 16)
+      : colors.warning;
+    container.setAccentColor(warningColor);
 
-    war.status = 'finalizada';
-    war.winnerGuildId = winner._id;
+    const titleText = new TextDisplayBuilder()
+      .setContent('# ⚠️ Confirm Winner Declaration');
 
-    await Promise.all([winner.save(), loser.save(), war.save()]);
-
-    // Feedback to war channel + close button
-    try {
-      await interaction.message.reply({ content: `🏆 Winner declared: ${winner.name}`, components: [buildWarCloseButtonRow(war._id)] });
-    } catch (_) {}
-
-    // War finished log
-    try {
-      const freshWinner = await Guild.findById(winner._id);
-      const freshLoser = await Guild.findById(loser._id);
-      const changes = [
-        {
-          entity: 'guild',
-          id: String(freshWinner._id),
-          field: 'wins',
-          before: (freshWinner.wins || 1) - 1,
-          after: freshWinner.wins,
-          reason: 'war win'
-        },
-        {
-          entity: 'guild',
-          id: String(freshLoser._id),
-          field: 'losses',
-          before: (freshLoser.losses || 1) - 1,
-          after: freshLoser.losses,
-          reason: 'war loss'
-        },
-      ];
-      interaction._commandLogExtra = interaction._commandLogExtra || {};
-      interaction._commandLogExtra.changes =
-        (interaction._commandLogExtra.changes || []).concat(changes);
-
-      await sendLog(
-        interaction.guild,
-        'War finished',
-        `War ${war._id}\nWinner: ${winner.name}\n` +
-        `Participants: ${guildA?.name} vs ${guildB?.name}`
+    const descText = new TextDisplayBuilder()
+      .setContent(
+        'Are you sure you want to declare the winner?\n' +
+        'This action **cannot be undone** and will update guild stats.'
       );
-    } catch (_) { /* ignore */ }
 
-    return interaction.editReply({ content: '✅ Result saved successfully.' });
+    const detailsText = new TextDisplayBuilder()
+      .setContent(
+        `**War:** ${guildA?.name} vs ${guildB?.name}\n` +
+        `**Winner:** ${winner.name}\n` +
+        `**Loser:** ${loserName}`
+      );
+
+    container.addTextDisplayComponents(titleText, descText, detailsText);
+
+    // Create confirmation buttons
+    const actionRow = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId(`war:declareWinner:confirm:${warId}:${winnerGuildId}`)
+        .setStyle(ButtonStyle.Danger)
+        .setLabel('Confirm Winner'),
+      new ButtonBuilder()
+        .setCustomId(`war:declareWinner:cancel:${warId}`)
+        .setStyle(ButtonStyle.Secondary)
+        .setLabel('Cancel')
+    );
+
+    await interaction.editReply({
+      content: '',
+      components: [container, actionRow],
+      flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2
+    });
   } catch (error) {
-    console.error('Error declaring winner:', error);
-    return replyEphemeral(interaction, { content: '❌ Could not save the result.' });
+    LoggerService.error('Error showing winner confirmation:', error);
+    return replyEphemeral(interaction, {
+      content: '❌ Could not show confirmation.'
+    });
   }
 }
 

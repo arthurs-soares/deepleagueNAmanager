@@ -2,7 +2,9 @@ const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const {
   ContainerBuilder,
   TextDisplayBuilder,
-  SectionBuilder
+  SectionBuilder,
+  MediaGalleryBuilder,
+  MediaGalleryItemBuilder
 } = require('@discordjs/builders');
 const { colors, emojis } = require('../../config/botConfig');
 const { getOrCreateUserProfile } = require('../user/userProfile');
@@ -157,18 +159,17 @@ async function buildUserProfileDisplayComponents(
   );
   container.addSectionComponents(section);
 
-  // Optional banner preview as accessory section
+  // Optional banner as media gallery
   if (typeof profile.bannerUrl === 'string'
     ? profile.bannerUrl.trim().length > 0
     : Boolean(profile.bannerUrl)) {
-    const bannerSection = new SectionBuilder()
-      .addTextDisplayComponents(
-        new TextDisplayBuilder().setContent('**Banner**')
+    const bannerGallery = new MediaGalleryBuilder()
+      .addItems(
+        new MediaGalleryItemBuilder()
+          .setURL(profile.bannerUrl)
+          .setDescription('Profile banner')
       );
-    bannerSection.setThumbnailAccessory(t =>
-      t.setURL(profile.bannerUrl).setDescription('Profile banner')
-    );
-    container.addSectionComponents(bannerSection);
+    container.addMediaGalleryComponents(bannerGallery);
   }
 
   // Footer

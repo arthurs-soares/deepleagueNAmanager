@@ -8,7 +8,7 @@ const {
 } = require('@discordjs/builders');
 const { ButtonStyle } = require('discord.js');
 
-const { colors } = require('../../config/botConfig');
+const { colors, emojis } = require('../../config/botConfig');
 const { formatRosterCounts } = require('../roster/rosterUtils');
 
 /**
@@ -47,7 +47,7 @@ async function buildGuildPanelDisplayComponents(guild, _discordGuild) {
 
   // Title section with icon thumbnail if available
   const titleText = new TextDisplayBuilder()
-    .setContent(`# ${guild.name}`);
+    .setContent(`# ${emojis.leader} ${guild.name}`);
 
   // Get guild icon or fallback to Discord server icon
   const serverIconUrl = _discordGuild?.iconURL({ dynamic: true, size: 128 });
@@ -68,9 +68,9 @@ async function buildGuildPanelDisplayComponents(guild, _discordGuild) {
 
   // Leadership section
   const leaderText = new TextDisplayBuilder()
-    .setContent(`**Leader**\n${guild.leader || '—'}`);
+    .setContent(`**${emojis.leader} Leader**\n${guild.leader || '—'}`);
   const coLeaderText = new TextDisplayBuilder()
-    .setContent(`**Co-leader**\n${coLeader?.username || '—'}`);
+    .setContent(`**${emojis.coLeader} Co-leader**\n${coLeader?.username || '—'}`);
   const rostersLeadershipText = new TextDisplayBuilder()
     .setContent(`**Rosters**\n${formatRosterCounts(guild)}`);
 

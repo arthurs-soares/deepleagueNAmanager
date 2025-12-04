@@ -35,7 +35,7 @@ async function buildGuildDetailDisplayComponents(guild, _discordGuild) {
 
   // Header section with guild name and description
   const headerText = new TextDisplayBuilder()
-    .setContent(`# ${emojis.guild} Guild Details: ${guild.name}`);
+    .setContent(`# ${emojis.leader} ${guild.name}`);
 
   container.addTextDisplayComponents(headerText);
 
@@ -114,7 +114,7 @@ async function buildGuildDetailDisplayComponents(guild, _discordGuild) {
 function formatUserList(ids) {
   if (!ids || ids.length === 0) return '—';
   const items = ids.map(id => `<@${id}>`);
-  const text = items.join(', ');
+  const text = items.join('\n');
   return text.length > 1000 ? text.slice(0, 1000) + '…' : text;
 }
 
