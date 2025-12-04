@@ -42,13 +42,21 @@ function buildGuildRegistrationData(interaction) {
   const name = interaction.options.getString('name');
   const leaderUser = interaction.options.getUser('leader');
   const region = interaction.options.getString('region');
+
+  // Use Discord server icon as default guild icon
+  const serverIconUrl = interaction.guild.iconURL({
+    dynamic: true,
+    size: 256
+  });
+
   return {
     name,
     leader: leaderUser.username,
     leaderId: leaderUser.id,
     registeredBy: interaction.user.id,
     discordGuildId: interaction.guild.id,
-    region
+    region,
+    iconUrl: serverIconUrl || null
   };
 }
 

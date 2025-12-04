@@ -8,13 +8,13 @@ function isMongoConnected() {
 
 /**
  * Register a new guild
- * @param {{name:string, leader:string, leaderId?:string, registeredBy:string, discordGuildId:string, region:string}} guildData
+ * @param {{name:string, leader:string, leaderId?:string, registeredBy:string, discordGuildId:string, region:string, iconUrl?:string}} guildData
  */
 async function registerGuild(guildData) {
   if (!isMongoConnected()) {
     return { success: false, message: 'Database is not connected. Cannot register guilds at the moment.', guild: null };
   }
-  const { name, leader, leaderId, registeredBy, discordGuildId, region } = guildData;
+  const { name, leader, leaderId, registeredBy, discordGuildId, region, iconUrl } = guildData;
   const existingGuild = await Guild.findByName(name, discordGuildId);
   if (existingGuild) {
     return { success: false, message: `A guild with the name "${name}" already exists on this server.`, guild: null };
@@ -25,6 +25,7 @@ async function registerGuild(guildData) {
     registeredBy,
     discordGuildId,
     region,
+    iconUrl: iconUrl || null,
     members: [{ userId: leaderId || registeredBy, username: String(leader).trim(), role: normalizeRoleToPortuguese('leader'), joinedAt: new Date() }]
   });
   const savedGuild = await newGuild.save();

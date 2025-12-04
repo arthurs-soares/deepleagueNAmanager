@@ -78,9 +78,6 @@ function buildChannelConfigOptions() {
 
     // 📋 Other
     new StringSelectMenuOptionBuilder()
-      .setLabel('Guild Rosters Forum').setDescription('Forum channel for guild roster posts')
-      .setValue('rosterForum').setEmoji('📋'),
-    new StringSelectMenuOptionBuilder()
       .setLabel('Roster Forum (SA)').setDescription('Forum for South America region rosters')
       .setValue('rosterForumSA').setEmoji('🌎'),
     new StringSelectMenuOptionBuilder()
@@ -117,7 +114,6 @@ function buildChannelsDisplayText(cfg) {
     `**War Dodge Channel:** ${ch(cfg.warDodgeChannelId)}\n` +
     `**Wager Dodge Channel:** ${ch(cfg.wagerDodgeChannelId)}\n` +
     `**War Logs Channel:** ${ch(cfg.warLogsChannelId)}\n` +
-    `**Guild Rosters Forum:** ${ch(cfg.rosterForumChannelId)}\n` +
     `**Roster Forum (SA):** ${ch(cfg.rosterForumSAChannelId)}\n` +
     `**Roster Forum (NA):** ${ch(cfg.rosterForumNAChannelId)}\n` +
     `**Roster Forum (EU):** ${ch(cfg.rosterForumEUChannelId)}\n` +
