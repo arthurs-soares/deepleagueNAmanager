@@ -7,6 +7,7 @@ const { sendAndPin } = require('../../../utils/tickets/pinUtils');
 const { countOpenWagerTickets } = require('../../../utils/wager/wagerTicketLimits');
 const WagerTicket = require('../../../models/wager/WagerTicket');
 const LoggerService = require('../../../services/LoggerService');
+const { colors } = require('../../../config/botConfig');
 
 const MAX_OPEN_WAGER_TICKETS_PER_USER = 4;
 
@@ -77,7 +78,7 @@ async function handle(interaction) {
     });
 
     const container = new ContainerBuilder();
-    container.setAccentColor(0x5865f2);
+    container.setAccentColor(colors.primary);
 
     const titleText = new TextDisplayBuilder()
       .setContent('# 🎲 Wager Ticket');

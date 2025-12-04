@@ -18,10 +18,10 @@ const LoggerService = require('../../services/LoggerService');
  * @returns {string} Emoji for rank
  */
 function getRankEmoji(rank) {
-  if (rank === 1) return '🥇';
-  if (rank === 2) return '🥈';
-  if (rank === 3) return '🥉';
-  return '🏅';
+  if (rank === 1) return emojis.rankFirst;
+  if (rank === 2) return emojis.rankSecond;
+  if (rank === 3) return emojis.rankThird;
+  return emojis.rankMedal;
 }
 
 /**

@@ -1,15 +1,17 @@
+const { emojis } = require('../../config/botConfig');
+
 /**
  * Get rank emoji based on position
  * @param {number} rank - Position in leaderboard (1-indexed)
  * @returns {string} Emoji for the rank
  */
 function getRankEmoji(rank) {
-  if (rank === 1) return '🥇';
-  if (rank === 2) return '🥈';
-  if (rank === 3) return '🥉';
-  if (rank <= 5) return '🏆';
-  if (rank <= 10) return '⭐';
-  return '🔸';
+  if (rank === 1) return emojis.rankFirst;
+  if (rank === 2) return emojis.rankSecond;
+  if (rank === 3) return emojis.rankThird;
+  if (rank <= 5) return emojis.rankTop5;
+  if (rank <= 10) return emojis.rankTop10;
+  return emojis.rankDefault;
 }
 
 /**
@@ -30,11 +32,11 @@ function createWinRateBar(winRate) {
  */
 function formatWinRateDisplay(winRate) {
   const percentage = (winRate * 100).toFixed(1);
-  let indicator = '➡️';
+  let indicator = emojis.trendNeutral;
 
-  if (winRate >= 0.8) indicator = '📈';
-  else if (winRate >= 0.6) indicator = '📊';
-  else if (winRate < 0.4) indicator = '📉';
+  if (winRate >= 0.8) indicator = emojis.trendUp;
+  else if (winRate >= 0.6) indicator = emojis.trendChart;
+  else if (winRate < 0.4) indicator = emojis.trendDown;
 
   return `${percentage}% ${indicator}`;
 }

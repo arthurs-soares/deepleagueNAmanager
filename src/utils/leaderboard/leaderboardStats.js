@@ -1,3 +1,5 @@
+const { emojis } = require('../../config/botConfig');
+
 /**
  * Calculate leaderboard statistics
  * @param {Array} guilds - Array of guild objects
@@ -39,8 +41,8 @@ function formatStatsDisplay(stats) {
   const winRatePercent = (stats.averageWinRate * 100).toFixed(1);
 
   return [
-    `📊 **${stats.totalGuilds}** guilds registered`,
-    `⚔️ **${stats.totalWars}** total wars fought`,
+    `${emojis.trendChart} **${stats.totalGuilds}** guilds registered`,
+    `${emojis.swords} **${stats.totalWars}** total wars fought`,
     `🎯 **${winRatePercent}%** average win rate`
   ].join(' • ');
 }
@@ -55,13 +57,13 @@ function getPerformanceTrend(guild) {
   const losses = guild.losses || 0;
   const total = wins + losses;
 
-  if (total === 0) return '🆕';
+  if (total === 0) return emojis.newEntry;
 
   const winRate = wins / total;
-  if (winRate >= 0.8) return '🔥';
-  if (winRate >= 0.6) return '📈';
-  if (winRate >= 0.4) return '➡️';
-  return '📉';
+  if (winRate >= 0.8) return emojis.trendFire;
+  if (winRate >= 0.6) return emojis.trendUp;
+  if (winRate >= 0.4) return emojis.trendNeutral;
+  return emojis.trendDown;
 }
 
 module.exports = {

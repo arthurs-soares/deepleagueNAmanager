@@ -9,6 +9,7 @@ const { isDatabaseConnected, resetConnectionState } = require('../../config/data
 const { syncAllRosterForums } = require('../../utils/roster/rosterForumSync');
 const { countGuildsByDiscordGuildId } = require('../../utils/guilds/guildRepository');
 const LoggerService = require('../../services/LoggerService');
+const { colors } = require('../../config/botConfig');
 
 /**
  * Handle /admin system sync
@@ -40,7 +41,7 @@ async function sync(interaction) {
  */
 async function dbStatus(interaction) {
   const container = new ContainerBuilder();
-  const color = isDatabaseConnected() ? 0x00ff00 : 0xff0000;
+  const color = isDatabaseConnected() ? colors.success : colors.error;
   container.setAccentColor(color);
 
   const connectionState = mongoose.connection.readyState;
@@ -88,7 +89,7 @@ async function dbReset(interaction) {
     resetConnectionState();
 
     const container = new ContainerBuilder();
-    container.setAccentColor(0xffaa00);
+    container.setAccentColor(colors.warningAlt);
 
     const titleText = new TextDisplayBuilder()
       .setContent('# 🔄 Database Connection Reset');

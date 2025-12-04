@@ -7,7 +7,7 @@ const {
   MediaGalleryBuilder,
   MediaGalleryItemBuilder
 } = require('@discordjs/builders');
-const { emojis } = require('../../config/botConfig');
+const { emojis, colors } = require('../../config/botConfig');
 
 /**
  * Build war tickets panel (Components v2 with inline buttons)
@@ -17,8 +17,7 @@ function buildWarTicketsPanel() {
   const container = new ContainerBuilder();
 
   // Set accent color
-  const warColor = 0x908676;
-  container.setAccentColor(warColor);
+  container.setAccentColor(colors.war);
 
   // Banner image at the top
   const bannerGallery = new MediaGalleryBuilder()

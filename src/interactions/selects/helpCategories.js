@@ -36,10 +36,7 @@ async function handle(interaction) {
     LoggerService.error('Error in select help:categories:', error);
     const container = new ContainerBuilder();
 
-    const errorColor = typeof colors.error === 'string'
-      ? parseInt(colors.error.replace('#', ''), 16)
-      : (colors.error || 0xff4d4f);
-    container.setAccentColor(errorColor);
+    container.setAccentColor(colors.error);
 
     const titleText = new TextDisplayBuilder().setContent('# Error');
     const descText = new TextDisplayBuilder()

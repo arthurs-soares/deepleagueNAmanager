@@ -1,4 +1,5 @@
 const { ActionRowBuilder, StringSelectMenuBuilder } = require('discord.js');
+const { emojis } = require('../../config/botConfig');
 
 /**
  * Build the dropdown (StringSelectMenu) for /help navigation
@@ -13,43 +14,43 @@ function buildHelpSelectRow() {
         label: 'What\'s New',
         description: 'Latest updates and changes',
         value: 'whats_new',
-        emoji: '🆕'
+        emoji: emojis.newEntry
       },
       {
         label: 'Commands Reference',
         description: 'All commands organized by domain',
         value: 'commands',
-        emoji: '📁'
+        emoji: emojis.commands
       },
       {
         label: 'War System',
         description: 'War tickets and management',
         value: 'war_system',
-        emoji: '⚔️'
+        emoji: emojis.swords
       },
       {
         label: 'Wager System',
         description: 'Player-to-player competitive matches',
         value: 'wager_system',
-        emoji: '🎲'
+        emoji: emojis.dice
       },
       {
         label: 'Leaderboards',
         description: 'Rankings and leaderboards',
         value: 'leaderboard',
-        emoji: '🏆'
+        emoji: emojis.trophy
       },
       {
         label: 'Administration',
         description: 'Admin panel and commands',
         value: 'admin_panel',
-        emoji: '🛡️'
+        emoji: emojis.admin
       },
       {
         label: 'Security',
         description: 'Rate limiting and cooldowns',
         value: 'security',
-        emoji: '🔐'
+        emoji: emojis.security
       }
     ]);
 

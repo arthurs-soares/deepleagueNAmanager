@@ -8,12 +8,17 @@ module.exports = {
     success: 0x00ff00,
     error: 0xff0000,
     warning: 0xffff00,
+    warningAlt: 0xffaa00,
     info: 0x0099ff,
-    primary: 0x5865f2
+    primary: 0x5865f2,
+    war: 0x908676,
+    wager: 0x465d49,
+    general: 0x808080
   },
 
   // Emojis
   emojis: {
+    // Custom Discord emojis
     success: '<:dl_check:1446181299235721226>',
     error: '<:dl_x:1446181293896503399>',
     warning: '<:dl_warn:1446181291988095036>',
@@ -38,7 +43,36 @@ module.exports = {
     leaderboard: '<:dl_trophy:1446181313190035498>',
     page: '<:dl_page:1446181307397832838>',
     ticket: '<:dl_ticket:1446181346505392199>',
-    region: '<:dl_region:1446183250308501644>'
+    region: '<:dl_region:1446183250308501644>',
+
+    // Unicode emojis - Ranks
+    rankFirst: '🥇',
+    rankSecond: '🥈',
+    rankThird: '🥉',
+    rankTop5: '🏆',
+    rankTop10: '⭐',
+    rankDefault: '🔸',
+    rankMedal: '🏅',
+
+    // Unicode emojis - Trends & Stats
+    trendUp: '📈',
+    trendNeutral: '➡️',
+    trendDown: '📉',
+    trendChart: '📊',
+    trendFire: '🔥',
+    newEntry: '🆕',
+
+    // Unicode emojis - Ticket types
+    blacklistAppeal: '📝',
+    generalChat: '💬',
+
+    // Unicode emojis - Help menu
+    commands: '📁',
+    security: '🔐',
+    admin: '🛡️',
+    dice: '<:dl_wager:1446190454642049074>',
+    swords: '⚔️',
+    trophy: '<:dl_trophy:1446181313190035498>'
   },
 
   // Cooldowns (in seconds)

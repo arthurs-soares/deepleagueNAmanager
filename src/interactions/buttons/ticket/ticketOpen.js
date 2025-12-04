@@ -5,7 +5,7 @@ const { getOrCreateRoleConfig } = require('../../../utils/misc/roleConfig');
 const { createGeneralTicketChannel } = require('../../../utils/tickets/generalTicketChannelManager');
 const { sendAndPin } = require('../../../utils/tickets/pinUtils');
 const GeneralTicket = require('../../../models/ticket/GeneralTicket');
-const { emojis } = require('../../../config/botConfig');
+const { emojis, colors } = require('../../../config/botConfig');
 
 /**
  * Ticket type configurations
@@ -15,25 +15,25 @@ const TICKET_TYPES = {
     emoji: emojis.warning || '⚠️',
     title: 'Admin Ticket',
     description: 'This ticket is for reporting chasebannable rule violations. Please provide detailed information about the incident.',
-    color: 0xFF0000
+    color: colors.error
   },
   blacklist_appeal: {
-    emoji: '📝',
+    emoji: emojis.blacklistAppeal,
     title: 'Blacklist Appeal',
     description: 'This ticket is for appealing a blacklist. Please explain your situation and why you believe the blacklist should be reconsidered.',
-    color: 0x5865F2
+    color: colors.primary
   },
   general: {
-    emoji: '💬',
+    emoji: emojis.generalChat,
     title: 'General Ticket',
     description: 'This ticket is for general inquiries and server-related questions. Our support team will assist you shortly.',
-    color: 0x808080
+    color: colors.general
   },
   roster: {
     emoji: emojis.rosters || '📋',
     title: 'Roster Ticket',
     description: 'This ticket is for roster registration and editing. Please provide the details of your roster request.',
-    color: 0x00FF00
+    color: colors.success
   }
 };
 

@@ -1,6 +1,6 @@
 const { MessageFlags, ButtonStyle } = require('discord.js');
 const { ContainerBuilder, TextDisplayBuilder, SeparatorBuilder, SectionBuilder, MediaGalleryBuilder, MediaGalleryItemBuilder } = require('@discordjs/builders');
-const { emojis } = require('../../config/botConfig');
+const { emojis, colors } = require('../../config/botConfig');
 
 /**
  * Build wager tickets panel (Components v2 with inline buttons)
@@ -10,8 +10,7 @@ function buildWagerTicketsPanel() {
   const container = new ContainerBuilder();
 
   // Set accent color
-  const wagerColor = 0x465d49;
-  container.setAccentColor(wagerColor);
+  container.setAccentColor(colors.wager);
 
   // Banner image at the top
   const bannerGallery = new MediaGalleryBuilder()
