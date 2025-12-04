@@ -6,9 +6,11 @@ const LoggerService = require('../../services/LoggerService');
 
 /**
  * Render the roster post content for a guild using Components v2
+ * @param {Object} guildDoc - Guild document from database
+ * @param {import('discord.js').Guild} discordGuild - Discord guild for icon fallback
  */
-async function buildRosterPostContent(guildDoc) {
-  const container = await buildGuildDetailDisplayComponents(guildDoc);
+async function buildRosterPostContent(guildDoc, discordGuild) {
+  const container = await buildGuildDetailDisplayComponents(guildDoc, discordGuild);
   // Return Components v2 payload
   return { components: [container], flags: MessageFlags.IsComponentsV2 };
 }
@@ -166,7 +168,7 @@ async function syncRosterForum(discordGuild, regionFilter = null) {
       // Create thread
       thread = await forum.threads.create({
         name: title,
-        message: await buildRosterPostContent(g)
+        message: await buildRosterPostContent(g, discordGuild)
       });
     } else {
       // Unarchive if archived
@@ -177,7 +179,7 @@ async function syncRosterForum(discordGuild, regionFilter = null) {
       try {
         const starterMessage = await thread.fetchStarterMessage();
         if (starterMessage) {
-          const payload = await buildRosterPostContent(g);
+          const payload = await buildRosterPostContent(g, discordGuild);
           await starterMessage.edit(payload);
         }
       } catch (_) { /* ignore */ }
