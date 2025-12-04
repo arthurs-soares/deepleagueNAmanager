@@ -37,7 +37,8 @@ module.exports = {
     history: '<:dl_history:1446181301244793059>',
     leaderboard: '<:dl_trophy:1446181313190035498>',
     page: '<:dl_page:1446181307397832838>',
-    ticket: '<:dl_ticket:1446181346505392199>'
+    ticket: '<:dl_ticket:1446181346505392199>',
+    region: '<:dl_region:1446183250308501644>'
   },
 
   // Cooldowns (in seconds)

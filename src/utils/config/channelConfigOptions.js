@@ -1,4 +1,5 @@
 const { StringSelectMenuOptionBuilder } = require('discord.js');
+const { emojis } = require('../../config/botConfig');
 
 /**
  * Build channel configuration select menu options
@@ -29,7 +30,7 @@ function buildChannelConfigOptions() {
       .setValue('warCategoryNAW').setEmoji('🌎'),
     new StringSelectMenuOptionBuilder()
       .setLabel('War Category (EU)').setDescription('Category for Europe war channels')
-      .setValue('warCategoryEU').setEmoji('🌍'),
+      .setValue('warCategoryEU').setEmoji(emojis.region),
     new StringSelectMenuOptionBuilder()
       .setLabel('Wager Category').setDescription('Category for wager channels')
       .setValue('wagerCategory').setEmoji('📁'),
@@ -85,7 +86,7 @@ function buildChannelConfigOptions() {
       .setValue('rosterForumNA').setEmoji('🌎'),
     new StringSelectMenuOptionBuilder()
       .setLabel('Roster Forum (EU)').setDescription('Forum for Europe region rosters')
-      .setValue('rosterForumEU').setEmoji('🌍')
+      .setValue('rosterForumEU').setEmoji(emojis.region)
   ];
 }
 

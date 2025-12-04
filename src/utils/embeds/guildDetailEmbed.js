@@ -71,7 +71,7 @@ async function buildGuildDetailDisplayComponents(guild, _discordGuild) {
 
   // Region section
   const regionText = new TextDisplayBuilder()
-    .setContent(`**🌍 Region**\n${guild.region || '—'}`);
+    .setContent(`**${emojis.region} Region**\n${guild.region || '—'}`);
   container.addTextDisplayComponents(regionText);
 
   // Statistics section - use individual TextDisplayBuilder components
