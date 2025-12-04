@@ -23,15 +23,15 @@ function getConnectionString() {
  */
 function buildConnectionOptions() {
   return {
-    // Connection timeouts - increased for better stability
-    serverSelectionTimeoutMS: 30000, // Increased from 10000 to 30s
-    socketTimeoutMS: 120000, // Increased from 60000 to 120s (2 minutes)
-    connectTimeoutMS: 30000, // Increased from 10000 to 30s
+    // Connection timeouts - increased for unstable networks
+    serverSelectionTimeoutMS: 45000,
+    socketTimeoutMS: 180000,
+    connectTimeoutMS: 45000,
 
     // Connection pool settings
     maxPoolSize: 10,
-    minPoolSize: 2,
-    maxIdleTimeMS: 60000, // Increased from 30000 to 60s
+    minPoolSize: 1,
+    maxIdleTimeMS: 120000,
 
     // Retry and reliability settings
     retryWrites: true,
@@ -41,15 +41,18 @@ function buildConnectionOptions() {
     // Buffer settings
     bufferCommands: false,
 
-    // Heartbeat settings for better connection monitoring
-    heartbeatFrequencyMS: 10000,
+    // Heartbeat settings - slower for unstable connections
+    heartbeatFrequencyMS: 15000,
 
     // Prevent automatic reconnection (we handle it manually)
     autoIndex: false,
     autoCreate: false,
 
-    // Additional stability settings
-    family: 4 // Use IPv4, helps with some network configurations
+    // Force IPv4 to avoid DNS issues
+    family: 4,
+
+    // Direct connection for better stability with SRV records
+    directConnection: false
   };
 }
 
