@@ -2,6 +2,7 @@ const { ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags } = require('
 const { ContainerBuilder, TextDisplayBuilder } = require('@discordjs/builders');
 const { colors, emojis } = require('../../config/botConfig');
 const Guild = require('../../models/guild/Guild');
+const LoggerService = require('../../services/LoggerService');
 
 /**
  * Opponent selection dropdown
@@ -32,7 +33,7 @@ async function handle(interaction) {
       .setContent(`War: ${guildA.name} VS ${guildB.name}`);
 
     const footerText = new TextDisplayBuilder()
-      .setContent(`*${emojis.schedule} Click "Set Schedule" to enter date and time*`);
+      .setContent('*📅 Click "Set Schedule" to enter date and time*');
 
     container.addTextDisplayComponents(titleText, descText, footerText);
 
@@ -40,7 +41,8 @@ async function handle(interaction) {
       new ButtonBuilder()
         .setCustomId(`war:openScheduleModal:${guildA._id}:${guildB._id}`)
         .setStyle(ButtonStyle.Secondary)
-        .setLabel(`${emojis.schedule} Set Schedule`)
+        .setLabel('Set Schedule')
+        .setEmoji('📅')
     );
 
     // Update the ephemeral message
@@ -49,8 +51,7 @@ async function handle(interaction) {
       flags: MessageFlags.IsComponentsV2
     });
   } catch (error) {
-    console.error('Error in war:selectOpponent select:', error);
-    const { MessageFlags } = require('discord.js');
+    LoggerService.error('Error in war:selectOpponent select:', error);
     const msg = { content: '❌ Error selecting opponent.', flags: MessageFlags.Ephemeral };
     if (interaction.deferred || interaction.replied) return interaction.followUp(msg);
     return interaction.reply(msg);
