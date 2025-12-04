@@ -49,12 +49,16 @@ async function buildGuildPanelDisplayComponents(guild, _discordGuild) {
   const titleText = new TextDisplayBuilder()
     .setContent(`# ${guild.name}`);
 
-  if (guild.iconUrl) {
+  // Get guild icon or fallback to Discord server icon
+  const serverIconUrl = _discordGuild?.iconURL({ dynamic: true, size: 128 });
+  const guildIconUrl = guild.iconUrl || serverIconUrl;
+
+  if (guildIconUrl) {
     const titleSection = new SectionBuilder()
       .addTextDisplayComponents(titleText);
     titleSection.setThumbnailAccessory(thumbnail =>
       thumbnail
-        .setURL(guild.iconUrl)
+        .setURL(guildIconUrl)
         .setDescription(`${guild.name} icon`)
     );
     container.addSectionComponents(titleSection);

@@ -56,7 +56,10 @@ async function buildGuildDetailDisplayComponents(guild, _discordGuild) {
     .addTextDisplayComponents(leaderText, coLeaderText);
 
   // SectionBuilder requires an accessory; use iconUrl for thumbnail
+  // Fallback to Discord server icon if no guild icon is set
+  const serverIconUrl = _discordGuild?.iconURL({ dynamic: true, size: 128 });
   const accessoryThumbnailUrl = guild.iconUrl ||
+    serverIconUrl ||
     'https://cdn.discordapp.com/embed/avatars/0.png';
   leadershipSection.setThumbnailAccessory(thumbnail =>
     thumbnail
