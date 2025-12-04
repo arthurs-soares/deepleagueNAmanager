@@ -30,16 +30,18 @@ async function fetchUsersOrderedByEventPoints(discordGuildId, discordGuild = nul
 
       if (memberIds.length === 0) return [];
 
+      // Include all users with non-zero points (positive or negative)
       return await EventPoints.find({
         discordGuildId,
         userId: { $in: memberIds },
-        points: { $gt: 0 }
+        points: { $ne: 0 }
       }).sort({ points: -1, totalEarned: -1, userId: 1 });
     }
 
+    // Include all users with non-zero points (positive or negative)
     return await EventPoints.find({
       discordGuildId,
-      points: { $gt: 0 }
+      points: { $ne: 0 }
     }).sort({ points: -1, totalEarned: -1, userId: 1 });
   } catch (error) {
     return [];
