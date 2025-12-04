@@ -20,11 +20,10 @@ const eventPointsSchema = new mongoose.Schema({
     index: true
   },
 
-  // Current event points balance
+  // Current event points balance (can be negative)
   points: {
     type: Number,
-    default: 0,
-    min: 0
+    default: 0
   },
 
   // Total points earned (lifetime)

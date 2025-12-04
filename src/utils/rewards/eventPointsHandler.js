@@ -73,22 +73,19 @@ async function handleRemovePoints(interaction) {
       return interaction.editReply({ content: '❌ Cannot remove points from bots.' });
     }
 
-    const current = await EventPoints.findOne({
-      discordGuildId: interaction.guild.id,
-      userId: targetUser.id
-    });
-
-    if (!current || current.points <= 0) {
-      return interaction.editReply({ content: '❌ User has no event points to remove.' });
-    }
-
-    const removeAmount = Math.min(amount, current.points);
-    current.points -= removeAmount;
-    await current.save();
+    // Use findOneAndUpdate to allow negative points
+    const updated = await EventPoints.findOneAndUpdate(
+      { discordGuildId: interaction.guild.id, userId: targetUser.id },
+      {
+        $inc: { points: -amount },
+        $setOnInsert: { discordGuildId: interaction.guild.id, userId: targetUser.id }
+      },
+      { upsert: true, new: true }
+    );
 
     const container = buildResponseContainer('✅ Points Removed',
-      `Removed **${removeAmount.toLocaleString()}** points from ${targetUser}.\n` +
-      `New balance: **${current.points.toLocaleString()}** points.`);
+      `Removed **${amount.toLocaleString()}** points from ${targetUser}.\n` +
+      `New balance: **${updated.points.toLocaleString()}** points.`);
 
     // Reply immediately, then update leaderboard in background
     await interaction.editReply({ components: [container], flags: MessageFlags.IsComponentsV2 });
@@ -97,8 +94,8 @@ async function handleRemovePoints(interaction) {
     sendLog(interaction.guild, '⭐ Event Points Removed',
       `**Staff:** ${interaction.user} (${interaction.user.tag})\n` +
       `**User:** ${targetUser} (${targetUser.tag})\n` +
-      `**Amount:** -${removeAmount.toLocaleString()} points\n` +
-      `**New Balance:** ${current.points.toLocaleString()} points\n` +
+      `**Amount:** -${amount.toLocaleString()} points\n` +
+      `**New Balance:** ${updated.points.toLocaleString()} points\n` +
       `**Reason:** ${reason}`).catch(() => {});
 
     upsertEventPointsLeaderboard(interaction.guild).catch(() => {});
