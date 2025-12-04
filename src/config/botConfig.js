@@ -50,9 +50,27 @@ module.exports = {
     rankSecond: '🥈',
     rankThird: '🥉',
     rankTop5: '🏆',
-    rankTop10: '⭐',
     rankDefault: '🔸',
     rankMedal: '🏅',
+
+    // Custom Discord emojis - Rank Tiers
+    rankTop10: '<:dl_top10:1446150244575346849>',
+    rankIron1: '<:dl_iron1:1446150134411952314>',
+    rankIron2: '<:dl_iron2:1446150132583235584>',
+    rankIron3: '<:dl_iron3:1446150130456727573>',
+    rankSilver1: '<:dl_silver1:1446150137595428944>',
+    rankSilver2: '<:dl_silver2:1446150127495676015>',
+    rankSilver3: '<:dl_silver3:1446150136144068771>',
+    rankGold1: '<:dl_gold1:1446150167459008614>',
+    rankGold2: '<:dl_gold2:1446150169711349920>',
+    rankGold3: '<:dl_gold3:1446150171758166227>',
+    rankPlatinum1: '<:dl_plat1:1446150190355714160>',
+    rankPlatinum2: '<:dl_plat2:1446150191819526258>',
+    rankPlatinum3: '<:dl_plat3:1446150194583437424>',
+    rankDiamond1: '<:dl_diamond1:1446150209276088393>',
+    rankDiamond2: '<:dl_diamond2:1446150229471662100>',
+    rankMaster: '<:dl_master:1446150211151069359>',
+    rankGrandMaster: '<:dl_grandmaster:1446150207577395283>',
 
     // Unicode emojis - Trends & Stats
     trendUp: '📈',
