@@ -31,7 +31,8 @@ async function handle(interaction) {
         `**Moderators:** ${cfg.moderatorsRoleIds?.map(id => `<@&${id}>`).join(', ') || '—'}\n` +
         `**Hosters:** ${cfg.hostersRoleIds?.map(id => `<@&${id}>`).join(', ') || '—'}\n` +
         `**Support:** ${cfg.supportRoleIds?.map(id => `<@&${id}>`).join(', ') || '—'}\n` +
-        `**Admin Support:** ${cfg.adminSupportRoleIds?.map(id => `<@&${id}>`).join(', ') || '—'}`
+        `**Admin Support:** ${cfg.adminSupportRoleIds?.map(id => `<@&${id}>`).join(', ') || '—'}\n` +
+        `**Registration Access:** ${cfg.registrationAccessRoleIds?.map(id => `<@&${id}>`).join(', ') || '—'}`
       );
 
     container.addTextDisplayComponents(titleText, descText);
@@ -81,7 +82,14 @@ async function handle(interaction) {
           .setLabel('Admin Support Roles')
           .setDescription('Roles for admin support (multiple selection)')
           .setValue('adminSupport')
-          .setEmoji('🛡️')
+          .setEmoji('🛡️'),
+
+        // 📝 Access Roles
+        new StringSelectMenuOptionBuilder()
+          .setLabel('Registration Access Roles')
+          .setDescription('Roles that can create roster tickets (multiple)')
+          .setValue('registrationAccess')
+          .setEmoji('📝')
       ]);
 
     const row = new ActionRowBuilder().addComponents(roleSelect);

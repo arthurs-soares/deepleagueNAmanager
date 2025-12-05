@@ -51,6 +51,12 @@ async function handle(interaction) {
         placeholder: 'Select admin support roles (1-25)',
         minValues: 1,
         maxValues: 25
+      },
+      registrationAccess: {
+        customId: 'config:roles:multiSelect:registrationAccessRoleIds',
+        placeholder: 'Select registration access roles (1-25)',
+        minValues: 1,
+        maxValues: 25
       }
     };
 

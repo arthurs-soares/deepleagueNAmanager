@@ -6,6 +6,7 @@ const { createGeneralTicketChannel } = require('../../../utils/tickets/generalTi
 const { sendAndPin } = require('../../../utils/tickets/pinUtils');
 const GeneralTicket = require('../../../models/ticket/GeneralTicket');
 const { emojis, colors } = require('../../../config/botConfig');
+const { hasRegistrationAccess } = require('../../../utils/core/permissions');
 
 /**
  * Ticket type configurations
@@ -48,6 +49,17 @@ async function handle(interaction) {
     const [, , ticketType] = interaction.customId.split(':');
     if (!ticketType || !TICKET_TYPES[ticketType]) {
       return interaction.editReply({ content: '❌ Invalid ticket type.' });
+    }
+
+    // Check registration access for roster tickets
+    if (ticketType === 'roster') {
+      const member = await interaction.guild.members.fetch(interaction.user.id);
+      const canAccess = await hasRegistrationAccess(member, interaction.guild.id);
+      if (!canAccess) {
+        return interaction.editReply({
+          content: '❌ You do not have permission to create roster tickets. Please contact an administrator if you believe this is an error.'
+        });
+      }
     }
 
     const settings = await getOrCreateServerSettings(interaction.guild.id);
