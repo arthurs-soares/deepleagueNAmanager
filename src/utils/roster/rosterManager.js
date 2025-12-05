@@ -3,6 +3,7 @@ const { isDatabaseConnected } = require('../../config/database');
 const { getGuildTransitionStatus, formatRemaining } = require('../rate-limiting/guildTransitionCooldown');
 const { getUserGuildInfo } = require('../guilds/userGuildInfo');
 const { logGuildMemberJoin, logGuildMemberLeave } = require('../guilds/activityLogger');
+const { ensureRegionsArray } = require('../guilds/guildDocHelpers');
 
 /**
  * Get a guild by its MongoDB ID
@@ -117,6 +118,10 @@ async function addToRoster(guildId, roster, userId, client = null) {
     }
 
     doc[field] = [...list, userId];
+
+    // Ensure regions array is valid before save (legacy migration)
+    ensureRegionsArray(doc);
+
     await doc.save();
 
     // Log guild member join activity
@@ -176,6 +181,10 @@ async function removeFromRoster(guildId, roster, userId) {
     }
 
     doc[field] = list.filter(id => id !== userId);
+
+    // Ensure regions array is valid before save (legacy migration)
+    ensureRegionsArray(doc);
+
     await doc.save();
 
     // Log guild member leave activity

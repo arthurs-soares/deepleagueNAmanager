@@ -6,11 +6,13 @@ const LoggerService = require('../../services/LoggerService');
 
 /**
  * Opponent selection dropdown
- * CustomId: war:selectOpponent:<guildAId>
+ * CustomId: war:selectOpponent:<guildAId>:<region>:<idx>
  */
 async function handle(interaction) {
   try {
-    const [, , guildAId] = interaction.customId.split(':');
+    const parts = interaction.customId.split(':');
+    const guildAId = parts[2];
+    const region = parts[3];
     const guildBId = interaction.values?.[0];
     if (!guildAId || !guildBId) return interaction.deferUpdate();
 
@@ -30,7 +32,7 @@ async function handle(interaction) {
       .setContent(`# ${emojis.war} War Creation Flow`);
 
     const descText = new TextDisplayBuilder()
-      .setContent(`War: ${guildA.name} VS ${guildB.name}`);
+      .setContent(`War: ${guildA.name} VS ${guildB.name}\nRegion: ${region}`);
 
     const footerText = new TextDisplayBuilder()
       .setContent('*📅 Click "Set Schedule" to enter date and time*');
@@ -39,7 +41,7 @@ async function handle(interaction) {
 
     const row = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
-        .setCustomId(`war:openScheduleModal:${guildA._id}:${guildB._id}`)
+        .setCustomId(`war:openScheduleModal:${guildA._id}:${guildB._id}:${region}`)
         .setStyle(ButtonStyle.Secondary)
         .setLabel('Set Schedule')
         .setEmoji('📅')

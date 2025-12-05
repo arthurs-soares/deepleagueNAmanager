@@ -54,6 +54,13 @@ module.exports = {
               { name: 'NA West', value: 'NA West' }
             )
         )
+        .addStringOption(opt =>
+          opt
+            .setName('extra_regions')
+            .setDescription('Additional regions (comma-separated: "NA West, Europe")')
+            .setRequired(false)
+            .setMaxLength(100)
+        )
     )
     // Delete subcommand
     .addSubcommand(sub =>
@@ -93,6 +100,18 @@ module.exports = {
             .setAutocomplete(true)
             .setRequired(true)
         )
+        .addStringOption(opt =>
+          opt
+            .setName('region')
+            .setDescription('Region to set score for')
+            .setRequired(true)
+            .addChoices(
+              { name: 'Europe', value: 'Europe' },
+              { name: 'South America', value: 'South America' },
+              { name: 'NA East', value: 'NA East' },
+              { name: 'NA West', value: 'NA West' }
+            )
+        )
         .addIntegerOption(opt =>
           opt
             .setName('wins')
@@ -104,6 +123,56 @@ module.exports = {
             .setName('losses')
             .setDescription('Losses')
             .setRequired(true)
+        )
+    )
+    // Add-region subcommand
+    .addSubcommand(sub =>
+      sub
+        .setName('add-region')
+        .setDescription('Register guild in a new region')
+        .addStringOption(opt =>
+          opt
+            .setName('name')
+            .setDescription('Guild name')
+            .setAutocomplete(true)
+            .setRequired(true)
+        )
+        .addStringOption(opt =>
+          opt
+            .setName('region')
+            .setDescription('Region to add')
+            .setRequired(true)
+            .addChoices(
+              { name: 'Europe', value: 'Europe' },
+              { name: 'South America', value: 'South America' },
+              { name: 'NA East', value: 'NA East' },
+              { name: 'NA West', value: 'NA West' }
+            )
+        )
+    )
+    // Remove-region subcommand
+    .addSubcommand(sub =>
+      sub
+        .setName('remove-region')
+        .setDescription('Remove guild from a region')
+        .addStringOption(opt =>
+          opt
+            .setName('name')
+            .setDescription('Guild name')
+            .setAutocomplete(true)
+            .setRequired(true)
+        )
+        .addStringOption(opt =>
+          opt
+            .setName('region')
+            .setDescription('Region to remove')
+            .setRequired(true)
+            .addChoices(
+              { name: 'Europe', value: 'Europe' },
+              { name: 'South America', value: 'South America' },
+              { name: 'NA East', value: 'NA East' },
+              { name: 'NA West', value: 'NA West' }
+            )
         )
     ),
 
@@ -155,6 +224,10 @@ module.exports = {
         return guildHandlers.handleView(interaction);
       case 'set-score':
         return guildHandlers.handleSetScore(interaction);
+      case 'add-region':
+        return guildHandlers.handleAddRegion(interaction);
+      case 'remove-region':
+        return guildHandlers.handleRemoveRegion(interaction);
       default: {
         const container = createErrorEmbed('Invalid', 'Unknown subcommand.');
         return interaction.reply({

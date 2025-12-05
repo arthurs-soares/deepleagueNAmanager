@@ -16,9 +16,12 @@ function applyGuildIndices(schema) {
 
   // Member queries and ranking
   schema.index({ discordGuildId: 1, 'members.userId': 1 });
-  schema.index({ discordGuildId: 1, wins: -1, losses: 1 });
-  // ELO leaderboard per Discord server
-  schema.index({ discordGuildId: 1, elo: -1 });
+
+  // Multi-region indices
+  schema.index({ discordGuildId: 1, 'regions.region': 1 });
+  schema.index({ discordGuildId: 1, 'regions.region': 1, 'regions.elo': -1 });
+  schema.index({ discordGuildId: 1, 'regions.region': 1, 'regions.wins': -1 });
+  schema.index({ discordGuildId: 1, 'regions.region': 1, 'regions.status': 1 });
 
   // Status and activity queries
   schema.index({ discordGuildId: 1, status: 1 });
@@ -36,8 +39,10 @@ function getGuildIndices() {
     { fields: { discordGuildId: 1 } },
     { fields: { registeredBy: 1 } },
     { fields: { discordGuildId: 1, 'members.userId': 1 } },
-    { fields: { discordGuildId: 1, wins: -1, losses: 1 } },
-    { fields: { discordGuildId: 1, elo: -1 } },
+    { fields: { discordGuildId: 1, 'regions.region': 1 } },
+    { fields: { discordGuildId: 1, 'regions.region': 1, 'regions.elo': -1 } },
+    { fields: { discordGuildId: 1, 'regions.region': 1, 'regions.wins': -1 } },
+    { fields: { discordGuildId: 1, 'regions.region': 1, 'regions.status': 1 } },
     { fields: { discordGuildId: 1, status: 1 } },
     { fields: { createdAt: -1 } },
     { fields: { updatedAt: -1 } }

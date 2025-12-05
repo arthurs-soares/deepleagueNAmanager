@@ -28,6 +28,10 @@ const {
   handleViewList
 } = require('../../utils/commands/viewGuildsFlow');
 const { handleSetScore } = require('../../utils/commands/guildScoreHandler');
+const {
+  handleAddRegion,
+  handleRemoveRegion
+} = require('../../utils/commands/guildRegionHandlers');
 const LoggerService = require('../../services/LoggerService');
 
 /**
@@ -132,11 +136,17 @@ async function handleRegister(interaction) {
     const guildData = buildGuildRegistrationData(interaction);
     const result = await registerGuild(guildData);
 
+    // Build regions text for success message
+    const regionsText = result.guild?.regions
+      ? result.guild.regions.map(r => r.region).join(', ')
+      : guildData.region;
+
     const container = result.success
       ? createSuccessEmbed(
         'Guild Registered',
         `**Name:** ${result.guild.name}\n` +
         `**Leader:** ${result.guild.leader}\n` +
+        `**Regions:** ${regionsText}\n` +
         `**Registered by:** <@${interaction.user.id}>\n` +
         `**Date:** <t:${Math.floor(result.guild.createdAt.getTime() / 1000)}:F>`
       )
@@ -254,5 +264,7 @@ module.exports = {
   handleRegister,
   handleDelete,
   handleView,
-  handleSetScore
+  handleSetScore,
+  handleAddRegion,
+  handleRemoveRegion
 };

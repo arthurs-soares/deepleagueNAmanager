@@ -2,15 +2,18 @@ const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder, Messag
 
 /**
  * Opens modal to input date and time
- * CustomId: war:openScheduleModal:<guildAId>:<guildBId>
+ * CustomId: war:openScheduleModal:<guildAId>:<guildBId>:<region>
  */
 async function handle(interaction) {
   try {
-    const [, , guildAId, guildBId] = interaction.customId.split(':');
+    const parts = interaction.customId.split(':');
+    const guildAId = parts[2];
+    const guildBId = parts[3];
+    const region = parts[4] || '';
     if (!guildAId || !guildBId) return interaction.deferUpdate();
 
     const modal = new ModalBuilder()
-      .setCustomId(`war:scheduleModal:${guildAId}:${guildBId}`)
+      .setCustomId(`war:scheduleModal:${guildAId}:${guildBId}:${region}`)
       .setTitle('Schedule War');
 
     const dayInput = new TextInputBuilder()

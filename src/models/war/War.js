@@ -7,6 +7,12 @@ const warSchema = new mongoose.Schema({
   discordGuildId: { type: String, required: true, index: true },
   guildAId: { type: mongoose.Schema.Types.ObjectId, ref: 'Guild', required: true },
   guildBId: { type: mongoose.Schema.Types.ObjectId, ref: 'Guild', required: true },
+  // Region where the war takes place (for multi-region support)
+  region: {
+    type: String,
+    enum: ['Europe', 'South America', 'NA East', 'NA West'],
+    default: null
+  },
   scheduledAt: { type: Date, required: true },
   // New: ID of the channel created for the war (replaces threads)
   channelId: { type: String, default: null },

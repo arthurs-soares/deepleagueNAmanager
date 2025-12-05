@@ -30,8 +30,9 @@ async function handle(interaction) {
     const opponents = await Guild.find({
       discordGuildId: interaction.guild.id,
       _id: { $ne: guildAId },
-      region: selectedRegion
-    }).select('name');
+      'regions.region': selectedRegion,
+      'regions.status': 'active'
+    }).select('name regions');
 
     if (!opponents.length) {
       return interaction.update({
@@ -80,7 +81,7 @@ async function handle(interaction) {
         : `More options (${idx + 1}/${optionChunks.length})`;
 
       const select = new StringSelectMenuBuilder()
-        .setCustomId(`war:selectOpponent:${guildAId}:${idx}`)
+        .setCustomId(`war:selectOpponent:${guildAId}:${selectedRegion}:${idx}`)
         .setPlaceholder(placeholder)
         .addOptions(chunk.map(g => ({
           label: g.name,

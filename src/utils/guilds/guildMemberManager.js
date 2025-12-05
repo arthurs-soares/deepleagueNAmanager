@@ -1,5 +1,6 @@
 const Guild = require('../../models/guild/Guild');
 const { normalizeRoleToPortuguese } = require('../core/roleMapping');
+const { ensureRegionsArray } = require('./guildDocHelpers');
 
 /**
  * Guild member management utilities
@@ -139,6 +140,9 @@ async function transferLeadership(guildId, newLeaderId, newLeaderName) {
     // Update fields
     doc.members = members;
     if (newLeaderName) doc.leader = newLeaderName;
+
+    // Ensure regions array is valid before save (legacy migration)
+    ensureRegionsArray(doc);
 
     const saved = await doc.save();
     return { success: true, message: 'Leadership transferred successfully.', guild: saved };

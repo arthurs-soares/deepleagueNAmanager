@@ -33,6 +33,7 @@ async function handleSetScore(interaction) {
     }
 
     const name = interaction.options.getString('name');
+    const region = interaction.options.getString('region');
     const wins = interaction.options.getInteger('wins');
     const losses = interaction.options.getInteger('losses');
 
@@ -51,8 +52,17 @@ async function handleSetScore(interaction) {
       });
     }
 
-    guildDoc.wins = wins;
-    guildDoc.losses = losses;
+    // Find the region stats to update
+    const regionStats = guildDoc.regions?.find(r => r.region === region);
+    if (!regionStats) {
+      return interaction.reply({
+        content: `❌ Guild is not registered in ${region}.`,
+        flags: MessageFlags.Ephemeral
+      });
+    }
+
+    regionStats.wins = wins;
+    regionStats.losses = losses;
     await guildDoc.save();
 
     try {
@@ -62,12 +72,13 @@ async function handleSetScore(interaction) {
         wins,
         losses,
         interaction.guild,
-        interaction.user.id
+        interaction.user.id,
+        region
       );
     } catch (_) {}
 
     return interaction.reply({
-      content: `✅ Score updated for ${guildDoc.name}: ${wins}W/${losses}L.`,
+      content: `✅ Score updated for ${guildDoc.name} (${region}): ${wins}W/${losses}L.`,
       flags: MessageFlags.Ephemeral
     });
   } catch (error) {

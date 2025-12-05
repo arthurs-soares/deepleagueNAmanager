@@ -12,13 +12,16 @@ const { sendAndPin } = require('../../utils/tickets/pinUtils');
 
 /**
  * Handle war schedule modal submission
- * CustomId: war:scheduleModal:<guildAId>:<guildBId>
+ * CustomId: war:scheduleModal:<guildAId>:<guildBId>:<region>
  */
 async function handle(interaction) {
   try {
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
-    const [, , guildAId, guildBId] = interaction.customId.split(':');
+    const parts = interaction.customId.split(':');
+    const guildAId = parts[2];
+    const guildBId = parts[3];
+    const region = parts[4] || null;
     const day = interaction.fields.getTextInputValue('day');
     const month = interaction.fields.getTextInputValue('month');
     const year = interaction.fields.getTextInputValue('year');
@@ -42,12 +45,30 @@ async function handle(interaction) {
       return interaction.editReply({ content: guildValidation.message });
     }
 
-    // Validate guilds are from same region
-    if (guildA.region !== guildB.region) {
+    // Determine war region (from customId or fallback to first common region)
+    let warRegion = region;
+    if (!warRegion) {
+      // Fallback: find first common active region between both guilds
+      const regionsA = (guildA.regions || [])
+        .filter(r => r.status === 'active')
+        .map(r => r.region);
+      const regionsB = (guildB.regions || [])
+        .filter(r => r.status === 'active')
+        .map(r => r.region);
+      warRegion = regionsA.find(r => regionsB.includes(r));
+    }
+
+    // Validate both guilds are active in the war region
+    const guildAInRegion = guildA.regions?.some(
+      r => r.region === warRegion && r.status === 'active'
+    );
+    const guildBInRegion = guildB.regions?.some(
+      r => r.region === warRegion && r.status === 'active'
+    );
+
+    if (!warRegion || !guildAInRegion || !guildBInRegion) {
       return interaction.editReply({
-        content: `❌ Guilds must be from the same region. ` +
-          `${guildA.name} is **${guildA.region}** and ` +
-          `${guildB.name} is **${guildB.region}**.`
+        content: `❌ Both guilds must be active in the same region.`
       });
     }
 
@@ -56,7 +77,7 @@ async function handle(interaction) {
     const categoryValidation = await validateWarCategory(
       settings,
       interaction.guild,
-      guildA.region
+      warRegion
     );
     if (!categoryValidation.valid) {
       return interaction.editReply({ content: categoryValidation.message });
@@ -77,11 +98,12 @@ async function handle(interaction) {
       roleIdsHosters
     );
 
-    // Create war record in database
+    // Create war record in database with region
     const war = await War.create({
       discordGuildId: interaction.guild.id,
       guildAId: guildA._id,
       guildBId: guildB._id,
+      region: warRegion,
       scheduledAt: dateTimeValidation.dateTime,
       channelId: warChannel.id,
       requestedByGuildId: guildA._id,

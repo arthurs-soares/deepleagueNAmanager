@@ -4,12 +4,16 @@ const {
   SectionBuilder,
   SeparatorBuilder,
   MediaGalleryBuilder,
-  MediaGalleryItemBuilder
+  MediaGalleryItemBuilder,
+  StringSelectMenuBuilder,
+  StringSelectMenuOptionBuilder,
+  ActionRowBuilder
 } = require('@discordjs/builders');
 const { ButtonStyle } = require('discord.js');
 
 const { colors, emojis } = require('../../config/botConfig');
 const { formatRosterCounts } = require('../roster/rosterUtils');
+const { getFirstActiveRegion } = require('../../models/statics/guildStatics');
 
 /**
  * Format managers list for display
@@ -21,6 +25,68 @@ function formatManagersList(managers) {
   return managers.map(id => `<@${id}>`).join(', ');
 }
 
+/**
+ * Get region stats for display
+ * @param {Object} guild - Guild document
+ * @param {string} selectedRegion - Selected region name
+ * @returns {Object} Region stats
+ */
+function getRegionStatsForDisplay(guild, selectedRegion) {
+  if (!guild?.regions?.length) {
+    return { region: '—', wins: 0, losses: 0, elo: 1000 };
+  }
+
+  if (selectedRegion) {
+    const found = guild.regions.find(r => r.region === selectedRegion);
+    if (found) return found;
+  }
+
+  return getFirstActiveRegion(guild) || guild.regions[0];
+}
+
+/**
+ * Build region stats section components
+ * @param {ContainerBuilder} container - Container to add to
+ * @param {Object} guild - Guild document
+ * @param {Object} regionStats - Region stats object
+ * @param {Array} activeRegions - Active regions array
+ * @param {string} guildId - Guild ID
+ */
+function buildRegionStatsSection(container, guild, regionStats, activeRegions, guildId) {
+  const regionLabel = regionStats?.region || '—';
+  const regionWins = regionStats?.wins ?? 0;
+  const regionLosses = regionStats?.losses ?? 0;
+  const regionElo = regionStats?.elo ?? 1000;
+
+  const regionsListText = activeRegions.length > 0
+    ? activeRegions.map(r => r.region).join(', ')
+    : '—';
+
+  const regionStatsText = new TextDisplayBuilder()
+    .setContent(
+      `### 🌍 Region Stats: **${regionLabel}**\n` +
+      `**Regions:** ${regionsListText}\n` +
+      `**W/L:** ${regionWins}/${regionLosses} | **ELO:** ${regionElo}`
+    );
+  container.addTextDisplayComponents(regionStatsText);
+
+  if (activeRegions.length > 1) {
+    const regionSelect = new StringSelectMenuBuilder()
+      .setCustomId(`guild_panel:select_region:${guildId}`)
+      .setPlaceholder('Switch Region');
+
+    for (const r of activeRegions) {
+      const option = new StringSelectMenuOptionBuilder()
+        .setLabel(r.region)
+        .setValue(r.region)
+        .setDefault(r.region === regionLabel);
+      regionSelect.addOptions(option);
+    }
+
+    const regionRow = new ActionRowBuilder().addComponents(regionSelect);
+    container.addActionRowComponents(regionRow);
+  }
+}
 
 
 /**
@@ -29,16 +95,18 @@ function formatManagersList(managers) {
  * - Uses SectionBuilder for organized information display
  * - Maintains all existing functionality with modern components
  * @param {Object} guild - Guild document
- * @param {import('discord.js').Guild} _discordGuild - Discord guild object (reserved)
+ * @param {import('discord.js').Guild} _discordGuild - Discord guild object
+ * @param {string} [selectedRegion] - Selected region for stats display
  * @returns {Promise<ContainerBuilder[]>}
  */
-async function buildGuildPanelDisplayComponents(guild, _discordGuild) {
+async function buildGuildPanelDisplayComponents(guild, _discordGuild, selectedRegion = null) {
 
   const members = Array.isArray(guild.members) ? guild.members : [];
   const coLeader = members.find(m => m.role === 'vice-lider');
 
   const guildId = guild.id || guild._id;
-
+  const regionStats = getRegionStatsForDisplay(guild, selectedRegion);
+  const activeRegions = (guild.regions || []).filter(r => r.status === 'active');
 
   const color = guild.color ? parseInt(guild.color.replace('#', ''), 16) : colors.primary;
 
@@ -145,6 +213,12 @@ async function buildGuildPanelDisplayComponents(guild, _discordGuild) {
   // Separator between top and bottom (Components V2)
   const separator = new SeparatorBuilder();
   container.addSeparatorComponents(separator);
+
+  // Region Stats Section
+  buildRegionStatsSection(container, guild, regionStats, activeRegions, guildId);
+
+  // Separator before description
+  container.addSeparatorComponents(new SeparatorBuilder());
 
   // Description — labeled, after separator
   if (guild.description) {

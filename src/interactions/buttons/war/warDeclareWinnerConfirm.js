@@ -5,6 +5,7 @@ const War = require('../../../models/war/War');
 const Guild = require('../../../models/guild/Guild');
 const { sendLog } = require('../../../utils/core/logger');
 const { getOrCreateRoleConfig } = require('../../../utils/misc/roleConfig');
+const { getFirstActiveRegion } = require('../../../models/statics/guildStatics');
 const LoggerService = require('../../../services/LoggerService');
 
 /**
@@ -60,8 +61,27 @@ async function handle(interaction) {
       : guildA._id;
     const [loser] = await Promise.all([Guild.findById(loserId)]);
 
-    winner.wins = (winner.wins || 0) + 1;
-    loser.losses = (loser.losses || 0) + 1;
+    // Determine the region for this war
+    const warRegion = war.region ||
+      getFirstActiveRegion(winner)?.region ||
+      getFirstActiveRegion(loser)?.region;
+
+    if (warRegion) {
+      // Update region-specific stats
+      const winnerRegionStats = winner.regions?.find(
+        r => r.region === warRegion
+      );
+      const loserRegionStats = loser.regions?.find(
+        r => r.region === warRegion
+      );
+
+      if (winnerRegionStats) {
+        winnerRegionStats.wins = (winnerRegionStats.wins || 0) + 1;
+      }
+      if (loserRegionStats) {
+        loserRegionStats.losses = (loserRegionStats.losses || 0) + 1;
+      }
+    }
 
     war.status = 'finalizada';
     war.winnerGuildId = winner._id;
@@ -86,21 +106,26 @@ async function handle(interaction) {
     try {
       const freshWinner = await Guild.findById(winner._id);
       const freshLoser = await Guild.findById(loser._id);
+
+      // Get region-specific stats for logging
+      const winnerStats = freshWinner.regions?.find(r => r.region === warRegion);
+      const loserStats = freshLoser.regions?.find(r => r.region === warRegion);
+
       const changes = [
         {
           entity: 'guild',
           id: String(freshWinner._id),
-          field: 'wins',
-          before: (freshWinner.wins || 1) - 1,
-          after: freshWinner.wins,
+          field: `wins (${warRegion || 'unknown'})`,
+          before: (winnerStats?.wins || 1) - 1,
+          after: winnerStats?.wins || 0,
           reason: 'war win'
         },
         {
           entity: 'guild',
           id: String(freshLoser._id),
-          field: 'losses',
-          before: (freshLoser.losses || 1) - 1,
-          after: freshLoser.losses,
+          field: `losses (${warRegion || 'unknown'})`,
+          before: (loserStats?.losses || 1) - 1,
+          after: loserStats?.losses || 0,
           reason: 'war loss'
         },
       ];
@@ -111,7 +136,8 @@ async function handle(interaction) {
       await sendLog(
         interaction.guild,
         'War finished',
-        `War ${war._id}\nWinner: ${winner.name}\n` +
+        `War ${war._id}\nRegion: ${warRegion || 'N/A'}\n` +
+        `Winner: ${winner.name}\n` +
         `Participants: ${guildA?.name} vs ${guildB?.name}`
       );
     } catch (_) {}

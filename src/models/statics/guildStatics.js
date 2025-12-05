@@ -19,6 +19,37 @@ function findByName(name, discordGuildId) {
 }
 
 /**
+ * Find guild by name AND region (case-insensitive)
+ * Allows same name in different regions
+ * @param {string} name - Guild name
+ * @param {string} discordGuildId - Discord server ID
+ * @param {string} region - Region name
+ * @returns {Promise} Promise with found guild
+ */
+function findByNameAndRegion(name, discordGuildId, region) {
+  const safe = escapeRegex(String(name || ''));
+  return this.findOne({
+    name: new RegExp(`^${safe}$`, 'i'),
+    discordGuildId,
+    'regions.region': region
+  });
+}
+
+/**
+ * Find guilds by region
+ * @param {string} discordGuildId - Discord server ID
+ * @param {string} region - Region name
+ * @returns {Promise} Guilds active in that region
+ */
+function findByRegion(discordGuildId, region) {
+  return this.find({
+    discordGuildId,
+    'regions.region': region,
+    'regions.status': 'active'
+  });
+}
+
+/**
  * List guilds from a server with pagination
  * @param {string} discordGuildId - Discord server ID
  * @param {Object} options - Pagination options
@@ -72,20 +103,140 @@ async function getPaginatedGuilds(discordGuildId, options = {}) {
 }
 
 /**
+ * Get guild's stats for a specific region
+ * @param {Object} guildDoc - Guild document
+ * @param {string} region - Region name
+ * @returns {Object|null} Region stats or null
+ */
+function getRegionStats(guildDoc, region) {
+  if (!guildDoc?.regions) return null;
+  return guildDoc.regions.find(r => r.region === region) || null;
+}
+
+/**
+ * Check if guild is registered in a region
+ * @param {Object} guildDoc - Guild document
+ * @param {string} region - Region name
+ * @returns {boolean}
+ */
+function isRegisteredInRegion(guildDoc, region) {
+  return guildDoc?.regions?.some(r => r.region === region) || false;
+}
+
+/**
+ * Get first active region for a guild
+ * @param {Object} guildDoc - Guild document
+ * @returns {Object|null} First active region stats
+ */
+function getFirstActiveRegion(guildDoc) {
+  if (!guildDoc?.regions?.length) return null;
+  return guildDoc.regions.find(r => r.status === 'active') || guildDoc.regions[0];
+}
+
+/**
+ * Add guild to a new region
+ * @param {string} guildId - Guild document ID
+ * @param {string} region - Region to add
+ * @returns {Promise} Updated guild document
+ */
+function addRegion(guildId, region) {
+  return this.findByIdAndUpdate(
+    guildId,
+    {
+      $push: {
+        regions: {
+          region,
+          wins: 0,
+          losses: 0,
+          elo: 1000,
+          registeredAt: new Date(),
+          status: 'active'
+        }
+      }
+    },
+    { new: true }
+  );
+}
+
+/**
+ * Remove guild from a region (set status to inactive)
+ * @param {string} guildId - Guild document ID
+ * @param {string} region - Region to remove
+ * @returns {Promise} Updated guild document
+ */
+function removeRegion(guildId, region) {
+  return this.findOneAndUpdate(
+    { _id: guildId, 'regions.region': region },
+    { $set: { 'regions.$.status': 'inactive' } },
+    { new: true }
+  );
+}
+
+/**
+ * Update region-specific stats
+ * @param {string} guildId - Guild document ID
+ * @param {string} region - Region name
+ * @param {Object} updates - Fields to update
+ * @returns {Promise} Updated guild document
+ */
+function updateRegionStats(guildId, region, updates) {
+  const setFields = {};
+  for (const [key, value] of Object.entries(updates)) {
+    setFields[`regions.$.${key}`] = value;
+  }
+  return this.findOneAndUpdate(
+    { _id: guildId, 'regions.region': region },
+    { $set: setFields },
+    { new: true }
+  );
+}
+
+/**
+ * Increment wins/losses for a specific region
+ * @param {string} guildId - Guild document ID
+ * @param {string} region - Region name
+ * @param {string} field - Field to increment (wins/losses)
+ * @param {number} amount - Amount to increment
+ * @returns {Promise} Updated guild document
+ */
+function incrementRegionStat(guildId, region, field, amount = 1) {
+  return this.findOneAndUpdate(
+    { _id: guildId, 'regions.region': region },
+    { $inc: { [`regions.$.${field}`]: amount } },
+    { new: true }
+  );
+}
+
+/**
  * Apply all static methods to guild schema
  * @param {mongoose.Schema} schema - Guild schema
  */
 function applyGuildStatics(schema) {
   schema.statics.findByName = findByName;
+  schema.statics.findByNameAndRegion = findByNameAndRegion;
+  schema.statics.findByRegion = findByRegion;
   schema.statics.findByDiscordGuild = findByDiscordGuild;
   schema.statics.countByDiscordGuild = countByDiscordGuild;
   schema.statics.getPaginatedGuilds = getPaginatedGuilds;
+  schema.statics.addRegion = addRegion;
+  schema.statics.removeRegion = removeRegion;
+  schema.statics.updateRegionStats = updateRegionStats;
+  schema.statics.incrementRegionStat = incrementRegionStat;
 }
 
 module.exports = {
   findByName,
+  findByNameAndRegion,
+  findByRegion,
   findByDiscordGuild,
   countByDiscordGuild,
   getPaginatedGuilds,
+  getRegionStats,
+  isRegisteredInRegion,
+  getFirstActiveRegion,
+  addRegion,
+  removeRegion,
+  updateRegionStats,
+  incrementRegionStat,
   applyGuildStatics
 };

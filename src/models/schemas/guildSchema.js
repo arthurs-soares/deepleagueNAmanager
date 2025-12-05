@@ -18,6 +18,27 @@ const memberSchema = new mongoose.Schema({
 }, { _id: false });
 
 /**
+ * Region stats sub-schema
+ * Stores region-specific stats (wins, losses, ELO)
+ */
+const regionStatsSchema = new mongoose.Schema({
+  region: {
+    type: String,
+    enum: ['Europe', 'South America', 'NA East', 'NA West'],
+    required: true
+  },
+  wins: { type: Number, default: 0, min: 0 },
+  losses: { type: Number, default: 0, min: 0 },
+  elo: { type: Number, default: 1000, min: 0, max: 5000 },
+  registeredAt: { type: Date, default: Date.now },
+  status: {
+    type: String,
+    enum: ['active', 'inactive', 'suspended'],
+    default: 'active'
+  }
+}, { _id: false });
+
+/**
  * Core guild schema with all field definitions
  */
 const guildSchema = new mongoose.Schema({
@@ -49,11 +70,14 @@ const guildSchema = new mongoose.Schema({
     required: true
   },
 
-  // Guild region
-  region: {
-    type: String,
-    enum: ['Europe', 'South America', 'NA East', 'NA West'],
-    required: true
+  // Multi-region support: array of region-specific stats
+  regions: {
+    type: [regionStatsSchema],
+    default: [],
+    validate: {
+      validator: v => v.length >= 1,
+      message: 'Guild must be registered in at least one region.'
+    }
   },
 
   // Guild status (active, inactive, etc.)
@@ -117,13 +141,6 @@ const guildSchema = new mongoose.Schema({
     }
   },
 
-  // War statistics
-  wins: { type: Number, default: 0, min: 0 },
-  losses: { type: Number, default: 0, min: 0 },
-
-  // ELO rating (0-5000), default 1000 for all guilds
-  elo: { type: Number, default: 1000, min: 0, max: 5000 },
-
   // Dates
   createdAt: {
     type: Date,
@@ -137,4 +154,4 @@ const guildSchema = new mongoose.Schema({
   timestamps: true // Automatically adds createdAt and updatedAt
 });
 
-module.exports = { guildSchema, memberSchema };
+module.exports = { guildSchema, memberSchema, regionStatsSchema };
