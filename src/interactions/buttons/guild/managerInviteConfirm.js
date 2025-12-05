@@ -89,12 +89,15 @@ async function handle(interaction) {
         .catch(() => {});
     }
 
+    // Defer update for slow operations (DB + DM sending)
+    await interaction.deferUpdate();
+
     const guildDoc = await Guild.findById(guildId);
     if (!guildDoc) {
       const embed = createErrorEmbed('Guild not found', 'Guild not in DB.');
-      return interaction.reply({
+      return interaction.editReply({
         components: [embed],
-        flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral
+        flags: MessageFlags.IsComponentsV2
       });
     }
 
@@ -104,9 +107,9 @@ async function handle(interaction) {
 
     if (!admin && !isLeader) {
       const embed = createErrorEmbed('Permission denied', 'Not authorized.');
-      return interaction.reply({
+      return interaction.editReply({
         components: [embed],
-        flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral
+        flags: MessageFlags.IsComponentsV2
       });
     }
 
@@ -114,19 +117,19 @@ async function handle(interaction) {
 
     if (managers.length >= 2) {
       const embed = createErrorEmbed('Limit reached', 'Max managers (2).');
-      return interaction.update({ components: [embed] });
+      return interaction.editReply({ components: [embed] });
     }
 
     if (managers.includes(userId)) {
       const embed = createErrorEmbed('Already manager', 'User is manager.');
-      return interaction.update({ components: [embed] });
+      return interaction.editReply({ components: [embed] });
     }
 
     const targetUser = await interaction.client.users.fetch(userId)
       .catch(() => null);
     if (!targetUser) {
       const embed = createErrorEmbed('Not found', 'User not found.');
-      return interaction.update({ components: [embed] });
+      return interaction.editReply({ components: [embed] });
     }
 
     const container = buildInviteContainer(guildDoc, interaction.user.username);
@@ -158,14 +161,14 @@ async function handle(interaction) {
 
     if (!result.ok) {
       const embed = createErrorEmbed('Failed', 'Could not deliver invite.');
-      return interaction.update({ components: [embed] });
+      return interaction.editReply({ components: [embed] });
     }
 
     const successEmbed = createSuccessEmbed(
       'Invitation sent',
       `Manager invitation sent to <@${userId}>.`
     );
-    return interaction.update({ components: [successEmbed] });
+    return interaction.editReply({ components: [successEmbed] });
   } catch (error) {
     LoggerService.error('Error in managerInviteConfirm:', { error });
     const embed = createErrorEmbed('Error', 'Could not send invitation.');

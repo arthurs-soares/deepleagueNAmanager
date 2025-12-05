@@ -76,13 +76,13 @@ async function hasRegistrationAccess(member, discordGuildId) {
     if (!member || !discordGuildId) return false;
     // Administrators always have access
     if (member.permissions?.has(PermissionFlagsBits.Administrator)) return true;
-    
+
     const cfg = await getOrCreateRoleConfig(discordGuildId);
     const registrationRoles = cfg?.registrationAccessRoleIds || [];
-    
+
     // If no roles configured, anyone can access
     if (!registrationRoles.length) return true;
-    
+
     // Check if member has one of the configured roles
     const allowedSet = new Set(registrationRoles);
     return member.roles.cache.some(r => allowedSet.has(r.id));

@@ -21,10 +21,7 @@ async function handle(interaction) {
     const decision = parts[5];
 
     if (!guildId || !roster || !userId || !decision) {
-      const embed = createErrorEmbed(
-        'Invalid data',
-        'Missing confirmation data.'
-      );
+      const embed = createErrorEmbed('Invalid data', 'Missing confirmation.');
       return interaction.reply({
         components: [embed],
         flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral
@@ -32,57 +29,43 @@ async function handle(interaction) {
     }
 
     if (decision === 'no') {
-      const embed = createSuccessEmbed(
-        'Action cancelled',
-        'The roster invitation was cancelled.'
-      );
+      const embed = createSuccessEmbed('Cancelled', 'Invitation was cancelled.');
       return interaction.update({
         components: [embed],
         flags: MessageFlags.IsComponentsV2
       });
     }
 
+    // Defer update for slow operations (DB + DM sending)
+    await interaction.deferUpdate();
+
     // decision === 'yes'
     const guildDoc = await getGuildById(guildId);
     if (!guildDoc) {
-      const embed = createErrorEmbed(
-        'Guild not found',
-        'Could not find the guild in the database.'
-      );
-      return interaction.update({ components: [embed] });
+      const embed = createErrorEmbed('Guild not found', 'Guild not in database.');
+      return interaction.editReply({ components: [embed] });
     }
 
     // Send DM invite
     const invite = await sendRosterInvite(
-      interaction.client,
-      userId,
-      guildDoc,
-      roster,
+      interaction.client, userId, guildDoc, roster,
       { id: interaction.user.id, username: interaction.user.username }
     );
 
     if (!invite.ok) {
-      const embed = createErrorEmbed(
-        'Could not send invite',
-        invite.error || 'Failed to deliver the DM to the user.'
-      );
-      return interaction.update({ components: [embed] });
+      const embed = createErrorEmbed('Send failed', invite.error || 'DM failed.');
+      return interaction.editReply({ components: [embed] });
     }
 
-    const rosterLabel = roster === 'main' ? 'Main Roster' : 'Sub Roster';
+    const label = roster === 'main' ? 'Main Roster' : 'Sub Roster';
     const embed = createSuccessEmbed(
       'Invitation sent',
-      `A DM invitation was sent to <@${userId}> to join the ` +
-      `${rosterLabel} of "${guildDoc?.name}".\n` +
-      `They must accept to be added.`
+      `DM sent to <@${userId}> to join ${label} of "${guildDoc?.name}".`
     );
-    return interaction.update({ components: [embed] });
+    return interaction.editReply({ components: [embed] });
   } catch (error) {
     LoggerService.error('Error in rosterInviteSendConfirm:', { error });
-    const embed = createErrorEmbed(
-      'Error',
-      'Could not process the roster invitation.'
-    );
+    const embed = createErrorEmbed('Error', 'Could not process the invitation.');
     if (interaction.deferred || interaction.replied) {
       return interaction.followUp({
         components: [embed],
