@@ -6,23 +6,38 @@ const { buildSupportCloseButtonRow } = require('../tickets/closeButtons');
 const LoggerService = require('../../services/LoggerService');
 
 /**
- * Add user to thread
+ * Add user to thread with retry logic
  * @param {import('discord.js').ThreadChannel} thread
  * @param {string} userId
+ * @param {number} [retries=2] - Number of retry attempts
  * @returns {Promise<boolean>}
  */
-async function addUserToThread(thread, userId) {
-  try {
-    await thread.members.add(userId);
-    return true;
-  } catch (err) {
-    LoggerService.warn('[dmFallback] Failed to add user', {
-      userId,
-      threadId: thread.id,
-      error: err?.message || 'Unknown'
-    });
-    return false;
+async function addUserToThread(thread, userId, retries = 2) {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      await thread.members.add(userId);
+      LoggerService.debug('[dmFallback] User added to thread', {
+        userId,
+        threadId: thread.id,
+        attempt: attempt + 1
+      });
+      return true;
+    } catch (err) {
+      const isLastAttempt = attempt === retries;
+      LoggerService.warn('[dmFallback] Failed to add user to thread', {
+        userId,
+        threadId: thread.id,
+        attempt: attempt + 1,
+        maxAttempts: retries + 1,
+        error: err?.message || 'Unknown',
+        code: err?.code
+      });
+      if (!isLastAttempt) {
+        await new Promise(r => setTimeout(r, 500 * (attempt + 1)));
+      }
+    }
   }
+  return false;
 }
 
 /**

@@ -53,10 +53,16 @@ async function sendDmOrFallback(client, discordGuildId, targetUserId, dmPayload,
 
   if (!thread) return failResult;
 
-  // Add user to thread
+  // Add user to thread FIRST (so they get notified)
   let userAdded = await addUserToThread(thread, targetUserId);
 
-  // Send messages (mention also adds user if members.add failed)
+  // If add failed, try once more after a short delay
+  if (!userAdded) {
+    await new Promise(r => setTimeout(r, 1000));
+    userAdded = await addUserToThread(thread, targetUserId, 1);
+  }
+
+  // Send messages (mention reinforces the notification)
   await sendThreadMessages(
     thread,
     targetUserId,
@@ -64,10 +70,26 @@ async function sendDmOrFallback(client, discordGuildId, targetUserId, dmPayload,
     options.includeSupportCloseButton
   );
 
-  // Verify user was added
-  if (!userAdded) userAdded = await verifyUserInThread(thread, targetUserId);
+  // Final verification - try adding again if still not in thread
   if (!userAdded) {
-    LoggerService.error('[dmFallback] User not added to thread', {
+    userAdded = await verifyUserInThread(thread, targetUserId);
+    if (!userAdded) {
+      // Last resort: try adding one more time
+      userAdded = await addUserToThread(thread, targetUserId, 0);
+      if (!userAdded) {
+        userAdded = await verifyUserInThread(thread, targetUserId);
+      }
+    }
+  }
+
+  if (!userAdded) {
+    LoggerService.error('[dmFallback] User NOT in thread after all attempts', {
+      targetUserId,
+      threadId: thread.id,
+      threadName: thread.name
+    });
+  } else {
+    LoggerService.info('[dmFallback] User successfully added to thread', {
       targetUserId,
       threadId: thread.id
     });
