@@ -1,8 +1,14 @@
-const Guild = require('../../models/guild/Guild');
+﻿const Guild = require('../../models/guild/Guild');
 const { isDatabaseConnected } = require('../../config/database');
-const { getGuildTransitionStatus, formatRemaining } = require('../rate-limiting/guildTransitionCooldown');
+const {
+  getGuildTransitionStatus,
+  formatRemaining
+} = require('../rate-limiting/guildTransitionCooldown');
 const { getUserGuildInfo } = require('../guilds/userGuildInfo');
-const { logGuildMemberJoin, logGuildMemberLeave } = require('../guilds/activityLogger');
+const {
+  logGuildMemberJoin,
+  logGuildMemberLeave
+} = require('../guilds/activityLogger');
 const { ensureRegionsArray } = require('../guilds/guildDocHelpers');
 
 /**
@@ -20,118 +26,188 @@ async function getGuildById(guildId) {
 }
 
 /**
- * Add a user to the specified roster, respecting the limit of 5.
- * Applies cooldown only for TRANSITIONS BETWEEN GUILDS:
- * if the user recently left another guild on this Discord server,
- * block joining a DIFFERENT guild until it expires.
- * Re-joining the SAME guild is allowed.
+ * Get region data from a guild document
+ * @param {Object} doc - Guild document
+ * @param {string} region - Region name
+ * @returns {Object|null} Region data or null if not found
+ */
+function getRegionData(doc, region) {
+  if (!Array.isArray(doc.regions)) return null;
+  return doc.regions.find(r => r.region === region) || null;
+}
+
+/**
+ * Get rosters for a specific region (with fallback to legacy global)
+ * @param {Object} doc - Guild document
+ * @param {string} region - Region name
+ * @returns {{mainRoster: string[], subRoster: string[]}}
+ */
+function getRegionRosters(doc, region) {
+  const regionData = getRegionData(doc, region);
+  if (regionData) {
+    return {
+      mainRoster: Array.isArray(regionData.mainRoster)
+        ? regionData.mainRoster : [],
+      subRoster: Array.isArray(regionData.subRoster)
+        ? regionData.subRoster : []
+    };
+  }
+  return {
+    mainRoster: Array.isArray(doc.mainRoster) ? doc.mainRoster : [],
+    subRoster: Array.isArray(doc.subRoster) ? doc.subRoster : []
+  };
+}
+
+/**
+ * Check if user is in any roster of a specific region
+ * @param {Object} doc - Guild document
+ * @param {string} region - Region name
+ * @param {string} userId - Discord user ID
+ * @returns {boolean}
+ */
+function isUserInRegionRoster(doc, region, userId) {
+  const { mainRoster, subRoster } = getRegionRosters(doc, region);
+  return mainRoster.includes(userId) || subRoster.includes(userId);
+}
+
+/**
+ * Check if user is in any roster of any region of this guild
+ * @param {Object} doc - Guild document
+ * @param {string} userId - Discord user ID
+ * @returns {{inRoster: boolean, regions: string[]}}
+ */
+function isUserInAnyGuildRoster(doc, userId) {
+  const regions = [];
+  if (Array.isArray(doc.regions)) {
+    for (const r of doc.regions) {
+      const main = Array.isArray(r.mainRoster) ? r.mainRoster : [];
+      const sub = Array.isArray(r.subRoster) ? r.subRoster : [];
+      if (main.includes(userId) || sub.includes(userId)) {
+        regions.push(r.region);
+      }
+    }
+  }
+  const legacyMain = Array.isArray(doc.mainRoster) ? doc.mainRoster : [];
+  const legacySub = Array.isArray(doc.subRoster) ? doc.subRoster : [];
+  if (legacyMain.includes(userId) || legacySub.includes(userId)) {
+    if (!regions.includes('legacy')) regions.push('legacy');
+  }
+  return { inRoster: regions.length > 0, regions };
+}
+
+/**
+ * Get all unique roster members across all regions
+ * @param {Object} doc - Guild document
+ * @returns {{allMain: string[], allSub: string[], allUnique: string[]}}
+ */
+function getAllRosterMembers(doc) {
+  const allMain = new Set();
+  const allSub = new Set();
+  if (Array.isArray(doc.regions)) {
+    for (const r of doc.regions) {
+      const main = Array.isArray(r.mainRoster) ? r.mainRoster : [];
+      const sub = Array.isArray(r.subRoster) ? r.subRoster : [];
+      main.forEach(id => allMain.add(id));
+      sub.forEach(id => allSub.add(id));
+    }
+  }
+  const legacyMain = Array.isArray(doc.mainRoster) ? doc.mainRoster : [];
+  const legacySub = Array.isArray(doc.subRoster) ? doc.subRoster : [];
+  legacyMain.forEach(id => allMain.add(id));
+  legacySub.forEach(id => allSub.add(id));
+  const allUnique = new Set([...allMain, ...allSub]);
+  return {
+    allMain: [...allMain],
+    allSub: [...allSub],
+    allUnique: [...allUnique]
+  };
+}
+
+/**
+ * Add a user to the specified roster for a specific region.
+ * Users can be in multiple regions of the SAME guild.
+ * Users CANNOT be in rosters of DIFFERENT guilds.
  * @param {string} guildId - Guild ID (Mongo)
  * @param {('main'|'sub')} roster - Roster type
  * @param {string} userId - Discord user ID
- * @param {import('discord.js').Client} [client] - Optional Discord client for logging
+ * @param {string} region - Region name
+ * @param {import('discord.js').Client} [client] - Optional client
  * @returns {Promise<{success:boolean, message:string, guild?:object}>}
  */
-async function addToRoster(guildId, roster, userId, client = null) {
+async function addToRoster(guildId, roster, userId, region, client = null) {
   try {
-    // Check database connection first
     if (!isDatabaseConnected()) {
-      return { success: false, message: 'Database is currently unavailable. Please try again later.' };
+      return {
+        success: false,
+        message: 'Database unavailable. Try again later.'
+      };
     }
 
     const doc = await Guild.findById(guildId);
     if (!doc) return { success: false, message: 'Guild not found.' };
 
-    // Check if user is already a member of any guild (prevent cross-guild membership)
+    const regionData = getRegionData(doc, region);
+    if (!regionData) {
+      return {
+        success: false,
+        message: `Guild is not registered in "${region}".`
+      };
+    }
+
+    // Check cross-guild membership (user can only be in ONE guild)
     if (doc?.discordGuildId) {
-      const { guild: existingGuild } = await getUserGuildInfo(doc.discordGuildId, userId);
+      const { guild: existingGuild } = await getUserGuildInfo(
+        doc.discordGuildId,
+        userId
+      );
       if (existingGuild && String(existingGuild._id) !== String(guildId)) {
-        // Log problema de entrada: já está em outra guilda
-        try {
-          const { logGuildAssociationProblem } = require('../misc/logEvents');
-          if (client) {
-            const guild = await client.guilds.fetch(doc.discordGuildId).catch(() => null);
-            if (guild) {
-              await logGuildAssociationProblem(
-                guild,
-                userId,
-                doc.name,
-                'entrada',
-                `Usuário já é membro de "${existingGuild.name}"`
-              );
-            }
-          }
-        } catch (_) {}
-        return { success: false, message: `User is already a member of guild "${existingGuild.name}". Users can only be in one guild at a time.` };
+        return {
+          success: false,
+          message: `User is already a member of "${existingGuild.name}".`
+        };
       }
     }
 
-    // Transition cooldown: only block when trying to join a DIFFERENT guild
+    // Transition cooldown (only for joining DIFFERENT guild)
     try {
-      const { active, remainingMs, lastLeftGuildId } = await getGuildTransitionStatus(doc.discordGuildId, userId);
+      const { active, remainingMs, lastLeftGuildId } =
+        await getGuildTransitionStatus(doc.discordGuildId, userId);
       if (active && String(guildId) !== String(lastLeftGuildId)) {
         const remaining = formatRemaining(remainingMs);
-        // Log problema de entrada: cooldown ativo
-        try {
-          const { logGuildAssociationProblem } = require('../misc/logEvents');
-          if (client) {
-            const guild = await client.guilds.fetch(doc.discordGuildId).catch(() => null);
-            if (guild) {
-              await logGuildAssociationProblem(
-                guild,
-                userId,
-                doc.name,
-                'entrada',
-                `Cooldown de transição ativo (${remaining} restantes)`
-              );
-            }
-          }
-        } catch (_) {}
-        return { success: false, message: `Guild transition cooldown is active. Please wait ${remaining} before joining another guild.` };
+        return {
+          success: false,
+          message: `Guild transition cooldown active. Wait ${remaining}.`
+        };
       }
     } catch (_) { /* silent */ }
 
     const field = roster === 'main' ? 'mainRoster' : 'subRoster';
-    const list = Array.isArray(doc[field]) ? doc[field] : [];
+    const currentList = Array.isArray(regionData[field])
+      ? regionData[field] : [];
 
-    if (list.includes(userId)) {
-      return { success: false, message: 'User is already in this roster.' };
+    if (currentList.includes(userId)) {
+      return {
+        success: false,
+        message: `User is already in ${roster} roster for ${region}.`
+      };
     }
 
-    if (list.length >= 5) {
-      // Log problema de entrada: roster cheio
-      try {
-        const { logGuildAssociationProblem } = require('../misc/logEvents');
-        if (client) {
-          const guild = await client.guilds.fetch(doc.discordGuildId).catch(() => null);
-          if (guild) {
-            await logGuildAssociationProblem(
-              guild,
-              userId,
-              doc.name,
-              'entrada',
-              `Roster ${roster} cheio (limite de 5 usuários atingido)`
-            );
-          }
-        }
-      } catch (_) {}
-      return { success: false, message: 'Limit of 5 users per roster reached.' };
+    if (currentList.length >= 5) {
+      return {
+        success: false,
+        message: `${roster} roster is full for ${region} (limit: 5).`
+      };
     }
 
-    doc[field] = [...list, userId];
-
-    // Ensure regions array is valid before save (legacy migration)
+    regionData[field] = [...currentList, userId];
     ensureRegionsArray(doc);
-
     await doc.save();
 
-    // Log guild member join activity
     try {
       let username = userId;
       if (client) {
-        try {
-          const user = await client.users.fetch(userId);
-          username = user?.username || user?.tag || userId;
-        } catch (_) {}
+        const user = await client.users.fetch(userId).catch(() => null);
+        username = user?.username || user?.tag || userId;
       }
       await logGuildMemberJoin(
         doc.discordGuildId,
@@ -139,67 +215,72 @@ async function addToRoster(guildId, roster, userId, client = null) {
         doc.name,
         userId,
         username,
-        roster
+        `${roster} (${region})`
       );
-    } catch (_) {}
+    } catch (_) { /* silent */ }
 
-    return { success: true, message: 'User added to roster successfully.', guild: doc };
+    return {
+      success: true,
+      message: `User added to ${roster} roster for ${region}.`,
+      guild: doc
+    };
   } catch (error) {
     console.error('Error adding to roster:', error);
-    // Log general error when adding
-    try {
-      const { logSystemError } = require('../misc/logEvents');
-      const doc = await Guild.findById(guildId).catch(() => null);
-      if (doc?.discordGuildId && client) {
-        const guild = await client.guilds.fetch(doc.discordGuildId).catch(() => null);
-        if (guild) {
-          await logSystemError(guild, `Error adding user ${userId} to guild ${doc.name}`, error);
-        }
-      }
-    } catch (_) {}
     return { success: false, message: 'Internal error adding to roster.' };
   }
 }
 
 /**
- * Remove a user from the specified roster
+ * Remove a user from the specified roster for a specific region
  * @param {string} guildId - Guild ID (Mongo)
  * @param {('main'|'sub')} roster - Roster type
  * @param {string} userId - Discord user ID
+ * @param {string} region - Region name
  * @returns {Promise<{success:boolean, message:string, guild?:object}>}
  */
-async function removeFromRoster(guildId, roster, userId) {
+async function removeFromRoster(guildId, roster, userId, region) {
   try {
     const doc = await Guild.findById(guildId);
     if (!doc) return { success: false, message: 'Guild not found.' };
 
-    const field = roster === 'main' ? 'mainRoster' : 'subRoster';
-    const list = Array.isArray(doc[field]) ? doc[field] : [];
-
-    if (!list.includes(userId)) {
-      return { success: false, message: 'User is not in this roster.' };
+    const regionData = getRegionData(doc, region);
+    if (!regionData) {
+      return {
+        success: false,
+        message: `Guild is not registered in "${region}".`
+      };
     }
 
-    doc[field] = list.filter(id => id !== userId);
+    const field = roster === 'main' ? 'mainRoster' : 'subRoster';
+    const list = Array.isArray(regionData[field]) ? regionData[field] : [];
 
-    // Ensure regions array is valid before save (legacy migration)
+    if (!list.includes(userId)) {
+      return {
+        success: false,
+        message: `User is not in ${roster} roster for ${region}.`
+      };
+    }
+
+    regionData[field] = list.filter(id => id !== userId);
     ensureRegionsArray(doc);
-
     await doc.save();
 
-    // Log guild member leave activity
     try {
       await logGuildMemberLeave(
         doc.discordGuildId,
         String(doc._id),
         doc.name,
         userId,
-        userId, // Username not available in this context
-        roster
+        userId,
+        `${roster} (${region})`
       );
-    } catch (_) {}
+    } catch (_) { /* silent */ }
 
-    return { success: true, message: 'User removed from roster successfully.', guild: doc };
+    return {
+      success: true,
+      message: `User removed from ${roster} roster for ${region}.`,
+      guild: doc
+    };
   } catch (error) {
     console.error('Error removing from roster:', error);
     return { success: false, message: 'Internal error removing from roster.' };
@@ -208,7 +289,11 @@ async function removeFromRoster(guildId, roster, userId) {
 
 module.exports = {
   getGuildById,
+  getRegionData,
+  getRegionRosters,
+  isUserInRegionRoster,
+  isUserInAnyGuildRoster,
+  getAllRosterMembers,
   addToRoster,
   removeFromRoster,
 };
-

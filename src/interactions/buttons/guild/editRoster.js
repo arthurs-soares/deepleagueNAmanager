@@ -1,45 +1,133 @@
-const { ActionRowBuilder, StringSelectMenuBuilder, MessageFlags } = require('discord.js');
+const {
+  ActionRowBuilder,
+  StringSelectMenuBuilder,
+  MessageFlags
+} = require('discord.js');
 const { createErrorEmbed } = require('../../../utils/embeds/embedBuilder');
+const Guild = require('../../../models/guild/Guild');
 
 /**
  * "Edit Roster" button handler
  * Expected CustomId: guild_panel:edit_roster:<guildId>
- * Opens a select with 4 possible actions.
+ * First shows region selector, then roster actions.
  * @param {ButtonInteraction} interaction
  */
 async function handle(interaction) {
   try {
     const parts = interaction.customId.split(':');
-    // guild_panel:edit_roster:<guildId>
     const guildId = parts[2];
     if (!guildId) {
       const embed = createErrorEmbed('Invalid data', 'GuildId not provided.');
-      return interaction.reply({ components: [embed], flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral });
+      return interaction.reply({
+        components: [embed],
+        flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral
+      });
     }
+
+    // Fetch guild to get available regions
+    const guildDoc = await Guild.findById(guildId);
+    if (!guildDoc) {
+      const embed = createErrorEmbed('Not found', 'Guild not found.');
+      return interaction.reply({
+        components: [embed],
+        flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral
+      });
+    }
+
+    const regions = Array.isArray(guildDoc.regions) ? guildDoc.regions : [];
+    if (regions.length === 0) {
+      const embed = createErrorEmbed(
+        'No regions',
+        'Guild has no registered regions.'
+      );
+      return interaction.reply({
+        components: [embed],
+        flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral
+      });
+    }
+
+    // If only one region, skip region selection
+    if (regions.length === 1) {
+      const region = regions[0].region;
+      return showRosterActions(interaction, guildId, region);
+    }
+
+    // Multiple regions - show region selector first
+    const regionOptions = regions.map(r => ({
+      label: r.region,
+      description: `Manage rosters for ${r.region}`,
+      value: r.region
+    }));
 
     const menu = new StringSelectMenuBuilder()
-      .setCustomId(`roster_actions:${guildId}`)
-      .setPlaceholder('Choose an action to manage rosters')
-      .addOptions([
-        { label: 'Add Main Roster', description: 'Add user to main roster (max. 5)', value: 'add_main' },
-        { label: 'Add Sub Roster', description: 'Add user to sub roster (max. 5)', value: 'add_sub' },
-        { label: 'Remove Main Roster', description: 'Remove user from main roster', value: 'remove_main' },
-        { label: 'Remove Sub Roster', description: 'Remove user from sub roster', value: 'remove_sub' },
-        { label: 'Remove Co-leader (not in roster)', description: 'Demote co-leader who is not on current rosters', value: 'remove_co_leader_external' },
-      ]);
+      .setCustomId(`roster_region_select:${guildId}`)
+      .setPlaceholder('Select a region to manage rosters')
+      .addOptions(regionOptions);
 
     const row = new ActionRowBuilder().addComponents(menu);
-
-    // Update the message to show the select (keeping previous embeds/components when possible)
-    return interaction.reply({ components: [row], flags: MessageFlags.Ephemeral });
+    return interaction.reply({
+      components: [row],
+      flags: MessageFlags.Ephemeral
+    });
   } catch (error) {
     console.error('Error in Edit Roster button:', error);
-    const container = createErrorEmbed('Error', 'Could not open roster actions.');
+    const container = createErrorEmbed('Error', 'Could not open roster menu.');
     if (interaction.deferred || interaction.replied) {
-      return interaction.followUp({ components: [container], flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral });
+      return interaction.followUp({
+        components: [container],
+        flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral
+      });
     }
-    return interaction.reply({ components: [container], flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral });
+    return interaction.reply({
+      components: [container],
+      flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral
+    });
   }
 }
 
-module.exports = { handle };
+/**
+ * Show roster action menu for a specific region
+ * @param {ButtonInteraction} interaction
+ * @param {string} guildId
+ * @param {string} region
+ */
+async function showRosterActions(interaction, guildId, region) {
+  const menu = new StringSelectMenuBuilder()
+    .setCustomId(`roster_actions:${guildId}:${region}`)
+    .setPlaceholder(`Manage rosters for ${region}`)
+    .addOptions([
+      {
+        label: 'Add Main Roster',
+        description: `Add user to main roster for ${region}`,
+        value: 'add_main'
+      },
+      {
+        label: 'Add Sub Roster',
+        description: `Add user to sub roster for ${region}`,
+        value: 'add_sub'
+      },
+      {
+        label: 'Remove Main Roster',
+        description: `Remove user from main roster for ${region}`,
+        value: 'remove_main'
+      },
+      {
+        label: 'Remove Sub Roster',
+        description: `Remove user from sub roster for ${region}`,
+        value: 'remove_sub'
+      },
+      {
+        label: 'Remove Co-leader (not in roster)',
+        description: 'Demote co-leader who is not on current rosters',
+        value: 'remove_co_leader_external'
+      },
+    ]);
+
+  const row = new ActionRowBuilder().addComponents(menu);
+  return interaction.reply({
+    components: [row],
+    flags: MessageFlags.Ephemeral
+  });
+}
+
+module.exports = { handle, showRosterActions };

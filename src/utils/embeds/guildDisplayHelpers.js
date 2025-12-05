@@ -105,10 +105,51 @@ function buildRegionSelector(customIdPrefix, guildId, activeRegions, currentRegi
   return new ActionRowBuilder().addComponents(regionSelect);
 }
 
+/**
+ * Get rosters for a specific region
+ * @param {Object} guild - Guild document
+ * @param {string} region - Region name
+ * @returns {{mainRoster: string[], subRoster: string[]}}
+ */
+function getRegionRosters(guild, region) {
+  if (!region || !Array.isArray(guild.regions)) {
+    // Fallback to legacy global rosters
+    return {
+      mainRoster: Array.isArray(guild.mainRoster) ? guild.mainRoster : [],
+      subRoster: Array.isArray(guild.subRoster) ? guild.subRoster : []
+    };
+  }
+
+  const regionData = guild.regions.find(r => r.region === region);
+  if (!regionData) {
+    return { mainRoster: [], subRoster: [] };
+  }
+
+  return {
+    mainRoster: Array.isArray(regionData.mainRoster)
+      ? regionData.mainRoster : [],
+    subRoster: Array.isArray(regionData.subRoster)
+      ? regionData.subRoster : []
+  };
+}
+
+/**
+ * Format roster counts for a specific region
+ * @param {Object} guild - Guild document
+ * @param {string} region - Region name
+ * @returns {string}
+ */
+function formatRegionRosterCounts(guild, region) {
+  const { mainRoster, subRoster } = getRegionRosters(guild, region);
+  return `Main: ${mainRoster.length}/5 | Sub: ${subRoster.length}/5`;
+}
+
 module.exports = {
   getRegionStatsForDisplay,
   formatUserList,
   formatManagersList,
   buildRegionStatsText,
-  buildRegionSelector
+  buildRegionSelector,
+  getRegionRosters,
+  formatRegionRosterCounts
 };

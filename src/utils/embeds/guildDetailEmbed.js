@@ -12,7 +12,8 @@ const {
   getRegionStatsForDisplay,
   formatUserList,
   buildRegionStatsText,
-  buildRegionSelector
+  buildRegionSelector,
+  getRegionRosters
 } = require('./guildDisplayHelpers');
 
 
@@ -34,13 +35,15 @@ async function buildGuildDetailDisplayComponents(guild, _discordGuild, selectedR
   const members = Array.isArray(guild.members) ? guild.members : [];
   const leaderMember = members.find(m => normalizeRoleToPortuguese(m.role) === 'lider');
   const coLeader = members.find(m => normalizeRoleToPortuguese(m.role) === 'vice-lider');
-  const mainRoster = Array.isArray(guild.mainRoster) ? guild.mainRoster : [];
-  const subRoster = Array.isArray(guild.subRoster) ? guild.subRoster : [];
   const managers = Array.isArray(guild.managers) ? guild.managers : [];
 
   const guildId = guild.id || guild._id;
   const regionStats = getRegionStatsForDisplay(guild, selectedRegion);
   const activeRegions = (guild.regions || []).filter(r => r.status === 'active');
+
+  // Get rosters for selected region
+  const regionLabel = regionStats?.region || activeRegions[0]?.region || '—';
+  const { mainRoster, subRoster } = getRegionRosters(guild, regionLabel);
 
   const color = guild.color ? parseInt(guild.color.replace('#', ''), 16) : colors.primary;
 
@@ -92,7 +95,6 @@ async function buildGuildDetailDisplayComponents(guild, _discordGuild, selectedR
   }
 
   // Region stats section with multi-region support
-  const regionLabel = regionStats?.region || '—';
   const regionStatsText = buildRegionStatsText(regionStats, activeRegions, false);
   container.addTextDisplayComponents(regionStatsText);
 
@@ -106,14 +108,14 @@ async function buildGuildDetailDisplayComponents(guild, _discordGuild, selectedR
   const separator = new SeparatorBuilder();
   container.addSeparatorComponents(separator);
 
-  // Main roster section
+  // Main roster section (for selected region)
   const mainRosterText = new TextDisplayBuilder()
-    .setContent(`**${emojis.mainRoster} Main Roster**\n${formatUserList(mainRoster)}`);
+    .setContent(`**${emojis.mainRoster} Main Roster (${regionLabel})**\n${formatUserList(mainRoster)}`);
   container.addTextDisplayComponents(mainRosterText);
 
-  // Sub roster section
+  // Sub roster section (for selected region)
   const subRosterText = new TextDisplayBuilder()
-    .setContent(`**${emojis.subRoster} Sub Roster**\n${formatUserList(subRoster)}`);
+    .setContent(`**${emojis.subRoster} Sub Roster (${regionLabel})**\n${formatUserList(subRoster)}`);
   container.addTextDisplayComponents(subRosterText);
 
   // Banner image at the bottom if configured

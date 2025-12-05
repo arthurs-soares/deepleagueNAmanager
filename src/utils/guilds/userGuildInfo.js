@@ -6,42 +6,49 @@ const Guild = require('../../models/guild/Guild');
 /**
  * Return user's guild information, if any
  * - Search for member (lider/vice/membro) and presence in main/sub rosters
- * - Define a single priority role: lider > vice-lider > membro > main > sub
+ * - Also checks region-specific rosters
  * @param {string} discordGuildId - Discord server ID
  * @param {string} userId - User ID
- * @returns {Promise<{ guild: any|null, role: 'lider'|'vice-lider'|'membro'|'main'|'sub'|null, joinedAt: Date|null }>}
+ * @returns {Promise<{ guild: any|null, role: string|null, joinedAt: Date|null }>}
  */
 async function getUserGuildInfo(discordGuildId, userId) {
   if (!discordGuildId || !userId) return { guild: null, role: null, joinedAt: null };
 
-  // Check database connection before querying
   if (!isDatabaseConnected()) {
-    console.warn('[getUserGuildInfo] Database not connected, returning null');
+    console.warn('[getUserGuildInfo] Database not connected');
     return { guild: null, role: null, joinedAt: null };
   }
 
   try {
-    // Search for a possible guild where the user is in any of the collections
+    // Search for guilds where user is in members, legacy rosters, or region rosters
     const candidates = await Guild.find({
       discordGuildId,
       $or: [
         { members: { $elemMatch: { userId } } },
         { mainRoster: userId },
-        { subRoster: userId }
+        { subRoster: userId },
+        { 'regions.mainRoster': userId },
+        { 'regions.subRoster': userId }
       ]
     }).sort({ createdAt: -1 });
 
     if (!candidates?.length) return { guild: null, role: null, joinedAt: null };
 
-    // Seleciona a primeira por ordem de criação (mais recente primeiro)
     const guild = candidates[0];
     const members = Array.isArray(guild.members) ? guild.members : [];
     const member = members.find(m => m.userId === userId) || null;
 
-    if (member?.role === 'lider') return { guild, role: 'lider', joinedAt: member.joinedAt || null };
-    if (member?.role === 'vice-lider') return { guild, role: 'vice-lider', joinedAt: member.joinedAt || null };
-    if (member) return { guild, role: 'membro', joinedAt: member.joinedAt || null };
+    if (member?.role === 'lider') {
+      return { guild, role: 'lider', joinedAt: member.joinedAt || null };
+    }
+    if (member?.role === 'vice-lider') {
+      return { guild, role: 'vice-lider', joinedAt: member.joinedAt || null };
+    }
+    if (member) {
+      return { guild, role: 'membro', joinedAt: member.joinedAt || null };
+    }
 
+    // Check legacy global rosters
     if (Array.isArray(guild.mainRoster) && guild.mainRoster.includes(userId)) {
       return { guild, role: 'main', joinedAt: null };
     }
@@ -49,10 +56,19 @@ async function getUserGuildInfo(discordGuildId, userId) {
       return { guild, role: 'sub', joinedAt: null };
     }
 
+    // Check region-specific rosters
+    if (Array.isArray(guild.regions)) {
+      for (const r of guild.regions) {
+        const main = Array.isArray(r.mainRoster) ? r.mainRoster : [];
+        const sub = Array.isArray(r.subRoster) ? r.subRoster : [];
+        if (main.includes(userId)) return { guild, role: 'main', joinedAt: null };
+        if (sub.includes(userId)) return { guild, role: 'sub', joinedAt: null };
+      }
+    }
+
     return { guild: null, role: null, joinedAt: null };
   } catch (error) {
-    console.error('[getUserGuildInfo] Error querying guild membership:', error);
-    // Return null on database errors to prevent false positives
+    console.error('[getUserGuildInfo] Error querying guild:', error);
     return { guild: null, role: null, joinedAt: null };
   }
 }

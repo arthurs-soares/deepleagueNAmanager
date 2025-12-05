@@ -19,7 +19,7 @@ const memberSchema = new mongoose.Schema({
 
 /**
  * Region stats sub-schema
- * Stores region-specific stats (wins, losses, ELO)
+ * Stores region-specific stats (wins, losses, ELO) and rosters
  */
 const regionStatsSchema = new mongoose.Schema({
   region: {
@@ -35,6 +35,15 @@ const regionStatsSchema = new mongoose.Schema({
     type: String,
     enum: ['active', 'inactive', 'suspended'],
     default: 'active'
+  },
+  // Region-specific rosters (user Discord IDs)
+  mainRoster: {
+    type: [String],
+    default: []
+  },
+  subRoster: {
+    type: [String],
+    default: []
   }
 }, { _id: false });
 
@@ -121,7 +130,8 @@ const guildSchema = new mongoose.Schema({
   // Guild members
   members: [memberSchema],
 
-  // Rosters (user lists by Discord ID)
+  // LEGACY: Global rosters - kept for migration compatibility
+  // New rosters are stored per-region in regions[].mainRoster/subRoster
   mainRoster: {
     type: [String],
     default: []

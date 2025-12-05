@@ -1,5 +1,8 @@
 const { MessageFlags } = require('discord.js');
-const { createErrorEmbed, createSuccessEmbed } = require('../../../utils/embeds/embedBuilder');
+const {
+  createErrorEmbed,
+  createSuccessEmbed
+} = require('../../../utils/embeds/embedBuilder');
 const { addToRoster, getGuildById } = require('../../../utils/roster/rosterManager');
 const { notifyInviterOnAccept } = require('../../../utils/roster/notifyInviterOnAccept');
 const { safeDeferEphemeral } = require('../../../utils/core/ack');
@@ -7,7 +10,7 @@ const { safeDeferEphemeral } = require('../../../utils/core/ack');
 
 /**
  * Button handler for accepting a roster invitation via DM
- * CustomId: rosterInvite:accept:<guildId>:<roster>
+ * CustomId: rosterInvite:accept:<guildId>:<roster>:<inviterId>:<region>
  */
 async function handle(interaction) {
   try {
@@ -16,35 +19,54 @@ async function handle(interaction) {
     const parts = interaction.customId.split(':');
     const guildId = parts[2];
     const roster = parts[3] === 'main' ? 'main' : 'sub';
-    const inviterId = parts[4] || null; // Optional: inviter user id for notification
+    const inviterId = parts[4] || null;
+    const region = parts[5]; // New: region parameter
 
-    if (!guildId) {
-      const embed = createErrorEmbed('Invalid invitation', 'Missing guild information.');
-      return interaction.editReply({ components: [embed], flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral });
+    if (!guildId || !region) {
+      const embed = createErrorEmbed('Invalid invitation', 'Missing data.');
+      return interaction.editReply({
+        components: [embed],
+        flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral
+      });
     }
 
     const guildDoc = await getGuildById(guildId);
     if (!guildDoc) {
-      const embed = createErrorEmbed('Guild not found', 'This invitation refers to a guild that no longer exists.');
-      return interaction.editReply({ components: [embed], flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral });
+      const embed = createErrorEmbed('Not found', 'Guild no longer exists.');
+      return interaction.editReply({
+        components: [embed],
+        flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral
+      });
     }
 
     const userId = interaction.user.id;
 
-    const result = await addToRoster(guildId, roster, userId, interaction.client);
-    if (!result.success) {
-      // Ensure English-only UX
-      const msg = result.message || 'We could not add you to the roster.';
-      const embed = createErrorEmbed('Could not join', msg);
-      return interaction.editReply({ components: [embed], flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral });
-    }
-
-    const container = createSuccessEmbed(
-      'You have joined the guild',
-      `You were added to the ${roster === 'main' ? 'Main Roster' : 'Sub Roster'} of "${result.guild?.name || guildDoc.name}". Welcome!`
+    // Add to roster with region
+    const result = await addToRoster(
+      guildId,
+      roster,
+      userId,
+      region,
+      interaction.client
     );
 
-    // Notify inviter, ignore errors (falls back to thread if DM closed)
+    if (!result.success) {
+      const msg = result.message || 'Could not add you to the roster.';
+      const embed = createErrorEmbed('Could not join', msg);
+      return interaction.editReply({
+        components: [embed],
+        flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral
+      });
+    }
+
+    const rosterLabel = roster === 'main' ? 'Main Roster' : 'Sub Roster';
+    const container = createSuccessEmbed(
+      'You have joined the guild',
+      `Added to ${rosterLabel} of "${result.guild?.name || guildDoc.name}" ` +
+      `for region **${region}**. Welcome!`
+    );
+
+    // Notify inviter
     if (inviterId) {
       const acceptedUsername = interaction.user.tag || interaction.user.username;
       await notifyInviterOnAccept(interaction.client, inviterId, {
@@ -52,21 +74,32 @@ async function handle(interaction) {
         acceptedUsername,
         guildName: result.guild?.name || guildDoc.name,
         roster,
+        region,
         when: new Date(),
         discordGuildId: guildDoc.discordGuildId || interaction.guild?.id,
       }).catch(() => {});
     }
 
-    // Disable buttons after success
-    try { await interaction.message.edit({ components: [] }); } catch (_) {}
+    try {
+      await interaction.message.edit({ components: [] });
+    } catch (_) {}
 
-    return interaction.editReply({ components: [container], flags: MessageFlags.IsComponentsV2 });
+    return interaction.editReply({
+      components: [container],
+      flags: MessageFlags.IsComponentsV2
+    });
   } catch (error) {
-    const container = createErrorEmbed('Error', 'An error occurred while processing your acceptance.');
+    const container = createErrorEmbed('Error', 'Error processing acceptance.');
     if (interaction.deferred || interaction.replied) {
-      return interaction.editReply({ components: [container], flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral });
+      return interaction.editReply({
+        components: [container],
+        flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral
+      });
     }
-    return interaction.reply({ components: [container], flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral });
+    return interaction.reply({
+      components: [container],
+      flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral
+    });
   }
 }
 

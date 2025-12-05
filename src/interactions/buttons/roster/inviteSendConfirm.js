@@ -9,7 +9,7 @@ const LoggerService = require('../../../services/LoggerService');
 
 /**
  * Handle roster invite send confirmation
- * CustomId: rosterInvite:sendConfirm:<guildId>:<roster>:<userId>:yes|no
+ * CustomId: rosterInvite:sendConfirm:<guildId>:<roster>:<userId>:yes|no:<region>
  * @param {import('discord.js').ButtonInteraction} interaction
  */
 async function handle(interaction) {
@@ -19,8 +19,9 @@ async function handle(interaction) {
     const roster = parts[3];
     const userId = parts[4];
     const decision = parts[5];
+    const region = parts[6]; // New: region parameter
 
-    if (!guildId || !roster || !userId || !decision) {
+    if (!guildId || !roster || !userId || !decision || !region) {
       const embed = createErrorEmbed('Invalid data', 'Missing confirmation.');
       return interaction.reply({
         components: [embed],
@@ -36,20 +37,22 @@ async function handle(interaction) {
       });
     }
 
-    // Defer update for slow operations (DB + DM sending)
     await interaction.deferUpdate();
 
-    // decision === 'yes'
     const guildDoc = await getGuildById(guildId);
     if (!guildDoc) {
-      const embed = createErrorEmbed('Guild not found', 'Guild not in database.');
+      const embed = createErrorEmbed('Not found', 'Guild not in database.');
       return interaction.editReply({ components: [embed] });
     }
 
-    // Send DM invite
+    // Send DM invite with region
     const invite = await sendRosterInvite(
-      interaction.client, userId, guildDoc, roster,
-      { id: interaction.user.id, username: interaction.user.username }
+      interaction.client,
+      userId,
+      guildDoc,
+      roster,
+      { id: interaction.user.id, username: interaction.user.username },
+      region // Pass region to invite
     );
 
     if (!invite.ok) {
@@ -60,12 +63,12 @@ async function handle(interaction) {
     const label = roster === 'main' ? 'Main Roster' : 'Sub Roster';
     const embed = createSuccessEmbed(
       'Invitation sent',
-      `DM sent to <@${userId}> to join ${label} of "${guildDoc?.name}".`
+      `DM sent to <@${userId}> for ${label} of "${guildDoc?.name}" (${region}).`
     );
     return interaction.editReply({ components: [embed] });
   } catch (error) {
     LoggerService.error('Error in rosterInviteSendConfirm:', { error });
-    const embed = createErrorEmbed('Error', 'Could not process the invitation.');
+    const embed = createErrorEmbed('Error', 'Could not process invitation.');
     if (interaction.deferred || interaction.replied) {
       return interaction.followUp({
         components: [embed],

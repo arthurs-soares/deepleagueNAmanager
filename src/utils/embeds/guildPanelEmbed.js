@@ -9,12 +9,12 @@ const {
 const { ButtonStyle } = require('discord.js');
 
 const { colors, emojis } = require('../../config/botConfig');
-const { formatRosterCounts } = require('../roster/rosterUtils');
 const {
   getRegionStatsForDisplay,
   formatManagersList,
   buildRegionStatsText,
-  buildRegionSelector
+  buildRegionSelector,
+  formatRegionRosterCounts
 } = require('./guildDisplayHelpers');
 
 
@@ -68,8 +68,11 @@ async function buildGuildPanelDisplayComponents(guild, _discordGuild, selectedRe
     .setContent(`**${emojis.leader} Leader**\n${guild.leader || '—'}`);
   const coLeaderText = new TextDisplayBuilder()
     .setContent(`**${emojis.coLeader} Co-leader**\n${coLeader?.username || '—'}`);
+
+  // Use region-specific roster counts
+  const rosterRegion = regionStats?.region || activeRegions[0]?.region || 'N/A';
   const rostersLeadershipText = new TextDisplayBuilder()
-    .setContent(`**Rosters**\n${formatRosterCounts(guild)}`);
+    .setContent(`**Rosters (${rosterRegion})**\n${formatRegionRosterCounts(guild, rosterRegion)}`);
 
   // Leader + inline action
   const leaderActionSection = new SectionBuilder()

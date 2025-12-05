@@ -1,81 +1,111 @@
-const { ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags } = require('discord.js');
-const { ContainerBuilder, TextDisplayBuilder, SeparatorBuilder } = require('@discordjs/builders');
+const {
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+  MessageFlags
+} = require('discord.js');
+const {
+  ContainerBuilder,
+  TextDisplayBuilder,
+  SeparatorBuilder
+} = require('@discordjs/builders');
 const { colors, emojis } = require('../../config/botConfig');
-const { getGuildTransitionStatus, formatRemaining } = require('../rate-limiting/guildTransitionCooldown');
+const {
+  getGuildTransitionStatus,
+  formatRemaining
+} = require('../rate-limiting/guildTransitionCooldown');
 const { sendDmOrFallback } = require('../dm/dmFallback');
 const { getUserGuildInfo } = require('../guilds/userGuildInfo');
 const { logGuildInvite } = require('../guilds/activityLogger');
+const { getRegionRosters } = require('./rosterManager');
 
 /**
  * Send a DM roster invitation to a user with Accept/Decline buttons.
- * The same mechanism supports main and sub roster by encoding the roster in the customId.
- *
  * @param {import('discord.js').Client} client - Discord client
  * @param {string} targetUserId - Discord user ID to invite
- * @param {object} guildDoc - Guild document (Mongo) containing at least _id and name
- * @param {'main'|'sub'} roster - Roster type to invite the user to
- * @param {{ id: string, username?: string, tag?: string }} inviter - The user who initiated the invite
+ * @param {object} guildDoc - Guild document (Mongo)
+ * @param {'main'|'sub'} roster - Roster type
+ * @param {{ id: string, username?: string }} inviter - User who invited
+ * @param {string} region - Region for the roster
  * @returns {Promise<{ok:boolean, error?:string}>}
  */
-async function sendRosterInvite(client, targetUserId, guildDoc, roster, inviter) {
+async function sendRosterInvite(
+  client,
+  targetUserId,
+  guildDoc,
+  roster,
+  inviter,
+  region
+) {
   try {
-    // Check if user is already a member of any guild (prevent cross-guild membership)
+    // Check cross-guild membership
     if (guildDoc?.discordGuildId) {
-      const { guild: existingGuild } = await getUserGuildInfo(guildDoc.discordGuildId, targetUserId);
+      const { guild: existingGuild } = await getUserGuildInfo(
+        guildDoc.discordGuildId,
+        targetUserId
+      );
       if (existingGuild && String(existingGuild._id) !== String(guildDoc._id)) {
-        return { ok: false, error: `User is already a member of guild "${existingGuild.name}". Users can only be in one guild at a time.` };
+        return {
+          ok: false,
+          error: `User is already in guild "${existingGuild.name}".`
+        };
       }
     }
 
-    // Pre-validate before any DM: prevent invalid invitations
-    const field = roster === 'main' ? 'mainRoster' : 'subRoster';
-    const list = Array.isArray(guildDoc?.[field]) ? guildDoc[field] : [];
+    // Check region-specific roster
+    const { mainRoster, subRoster } = getRegionRosters(guildDoc, region);
+    const list = roster === 'main' ? mainRoster : subRoster;
 
     if (list.includes(targetUserId)) {
-      return { ok: false, error: 'User is already in this roster.' };
+      return { ok: false, error: `User is already in this roster for ${region}.` };
     }
     if (list.length >= 5) {
-      return { ok: false, error: 'Limit of 5 users per roster reached.' };
+      return { ok: false, error: `Roster full for ${region} (limit: 5).` };
     }
 
-    // Cooldown pre-check: only block if trying to join a different guild
+    // Cooldown check
     if (guildDoc?.discordGuildId) {
       try {
-        const { active, remainingMs, lastLeftGuildId } = await getGuildTransitionStatus(
-          guildDoc.discordGuildId,
-          targetUserId
-        );
+        const { active, remainingMs, lastLeftGuildId } =
+          await getGuildTransitionStatus(guildDoc.discordGuildId, targetUserId);
         if (active && String(guildDoc._id) !== String(lastLeftGuildId)) {
           const remaining = formatRemaining(remainingMs);
-          return { ok: false, error: `That user is on a guild transition cooldown. Please wait ${remaining} before they can join another guild.` };
+          return {
+            ok: false,
+            error: `User on cooldown. Wait ${remaining}.`
+          };
         }
-      } catch (_) { /* ignore pre-check errors */ }
+      } catch (_) { /* ignore */ }
     }
 
     const user = await client.users.fetch(targetUserId).catch(() => null);
     if (!user) return { ok: false, error: 'Target user not found.' };
+
     const rosterLabel = roster === 'main' ? 'Main Roster' : 'Sub Roster';
 
     const container = new ContainerBuilder();
-
-    // Convert color to integer if it's a hex string
     const primaryColor = typeof colors.primary === 'string'
       ? parseInt(colors.primary.replace('#', ''), 16)
       : colors.primary;
     container.setAccentColor(primaryColor);
 
     const titleText = new TextDisplayBuilder()
-      .setContent(`# ${emojis.members || '👥'} Guild Roster Invitation\n\nYou have been invited to join the ${rosterLabel} of guild "${guildDoc?.name || 'Unknown'}".\n\nWould you like to join?`);
+      .setContent(
+        `# ${emojis.members || '👥'} Guild Roster Invitation\n\n` +
+        `You have been invited to join the ${rosterLabel} of ` +
+        `guild "${guildDoc?.name || 'Unknown'}" for region **${region}**.`
+      );
 
     const detailsText = new TextDisplayBuilder()
       .setContent(
         `**Guild:** ${guildDoc?.name || 'Unknown'}\n` +
         `**Roster:** ${rosterLabel}\n` +
-        `**Invited by:** ${inviter?.username ? `${inviter.username}` : `<@${inviter?.id}>`}`
+        `**Region:** ${region}\n` +
+        `**Invited by:** ${inviter?.username || `<@${inviter?.id}>`}`
       );
 
     const footerText = new TextDisplayBuilder()
-      .setContent('*This invite was generated by the server bot. If you did not expect it, you can safely decline.*');
+      .setContent('*This invite was generated by the bot.*');
 
     const timestampText = new TextDisplayBuilder()
       .setContent(`*<t:${Math.floor(Date.now() / 1000)}:R>*`);
@@ -86,13 +116,16 @@ async function sendRosterInvite(client, targetUserId, guildDoc, roster, inviter)
     container.addTextDisplayComponents(footerText);
     container.addTextDisplayComponents(timestampText);
 
+    // Include region in button customIds
     const accept = new ButtonBuilder()
-      .setCustomId(`rosterInvite:accept:${guildDoc._id}:${roster}:${inviter?.id || 'unknown'}`)
+      .setCustomId(
+        `rosterInvite:accept:${guildDoc._id}:${roster}:${inviter?.id || 'unknown'}:${region}`
+      )
       .setLabel('Join Guild')
       .setStyle(ButtonStyle.Success);
 
     const decline = new ButtonBuilder()
-      .setCustomId(`rosterInvite:decline:${guildDoc._id}:${roster}`)
+      .setCustomId(`rosterInvite:decline:${guildDoc._id}:${roster}:${region}`)
       .setLabel("Don't Join")
       .setStyle(ButtonStyle.Secondary);
 

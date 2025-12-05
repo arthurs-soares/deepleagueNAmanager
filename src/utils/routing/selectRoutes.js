@@ -10,6 +10,7 @@ function resolveSelectHandler(customId) {
   if (customId === 'help:categories') return '../interactions/selects/helpCategories';
 
   if (customId.startsWith('roster_actions:')) return '../interactions/selects/rosterActions';
+  if (customId.startsWith('roster_region_select:')) return '../interactions/selects/rosterRegionSelect';
   if (customId.startsWith('roster_user_select:')) return '../interactions/user-selects/rosterUserSelect';
   if (customId.startsWith('roster_member_select:')) return '../interactions/selects/rosterMemberSelect';
   if (customId.startsWith('transfer_leader_user_select:')) return '../interactions/user-selects/transferLeaderUserSelect';
