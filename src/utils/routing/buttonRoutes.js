@@ -66,6 +66,10 @@ function resolveButtonHandler(customId) {
   if (customId.startsWith('manager:inviteConfirm:')) return '../interactions/buttons/guild/managerInviteConfirm';
   if (customId.startsWith('manager:remove:')) return '../interactions/buttons/guild/removeManager';
 
+  // Co-leader invite flow
+  if (customId.startsWith('coLeaderInvite:accept:')) return '../interactions/buttons/guild/coLeaderInviteAccept';
+  if (customId.startsWith('coLeaderInvite:decline:')) return '../interactions/buttons/guild/coLeaderInviteDecline';
+
   if (customId === 'profile:edit') return '../interactions/buttons/profile/editProfile';
   if (customId === 'profile:leaveGuild') return '../interactions/buttons/profile/leaveGuild';
   if (customId.startsWith('profile:confirmLeave:')) return '../interactions/buttons/profile/confirmLeaveGuild';
