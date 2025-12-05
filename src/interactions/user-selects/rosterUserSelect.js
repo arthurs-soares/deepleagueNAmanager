@@ -112,11 +112,11 @@ async function handle(interaction) {
 
     const row = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
-        .setCustomId('inviteSendConfirm:yes:' + guildId + ':' + selectedUserId + ':' + roster + ':' + source + ':' + region)
+        .setCustomId('rosterInvite:sendConfirm:' + guildId + ':' + roster + ':' + selectedUserId + ':yes:' + region)
         .setLabel('Send Invite')
         .setStyle(ButtonStyle.Success),
       new ButtonBuilder()
-        .setCustomId('inviteSendConfirm:no:' + guildId + ':' + selectedUserId + ':' + roster + ':' + source + ':' + region)
+        .setCustomId('rosterInvite:sendConfirm:' + guildId + ':' + roster + ':' + selectedUserId + ':no:' + region)
         .setLabel('Cancel')
         .setStyle(ButtonStyle.Secondary)
     );
