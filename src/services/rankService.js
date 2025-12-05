@@ -156,7 +156,7 @@ async function updateTop10Ranks(discordGuild) {
       .filter(m => !m.user?.bot)
       .keys()];
 
-    // Get top 10 users by wager wins
+    // Get top 10 users by wager wins (must have at least 1 win)
     const topUsers = await UserProfile.find({
       discordUserId: { $in: memberIds },
       wagerWins: { $gt: 0 }
@@ -167,7 +167,19 @@ async function updateTop10Ranks(discordGuild) {
 
     const top10UserIds = new Set(topUsers.map(u => u.discordUserId));
 
+    LoggerService.debug('Top 10 sync:', {
+      guildId: discordGuild.id,
+      top10Count: top10UserIds.size,
+      top10Users: topUsers.map(u => ({
+        id: u.discordUserId,
+        wins: u.wagerWins
+      }))
+    });
+
     // Update roles for all members
+    let added = 0;
+    let removed = 0;
+
     for (const [memberId, member] of discordGuild.members.cache) {
       if (member.user?.bot) continue;
 
@@ -177,8 +189,10 @@ async function updateTop10Ranks(discordGuild) {
       try {
         if (shouldHaveTop10 && !hasTop10) {
           await member.roles.add(top10RoleId);
+          added++;
         } else if (!shouldHaveTop10 && hasTop10) {
           await member.roles.remove(top10RoleId);
+          removed++;
         }
       } catch (err) {
         LoggerService.warn('Failed to update Top 10 role:', {
@@ -186,6 +200,14 @@ async function updateTop10Ranks(discordGuild) {
           error: err.message
         });
       }
+    }
+
+    if (added > 0 || removed > 0) {
+      LoggerService.info('Top 10 roles synced:', {
+        guildId: discordGuild.id,
+        added,
+        removed
+      });
     }
   } catch (error) {
     LoggerService.error('Error updating Top 10 ranks:', {

@@ -11,6 +11,7 @@ const {
   setWagerLeaderboardMessage
 } = require('../system/serverSettings');
 const LoggerService = require('../../services/LoggerService');
+const { updateTop10Ranks } = require('../../services/rankService');
 
 /**
  * Get rank emoji based on position
@@ -115,6 +116,7 @@ async function buildWagerLeaderboardEmbed(discordGuild) {
 
 /**
  * Publish or update the wager leaderboard message in the configured channel
+ * Also syncs Top 10 roles to ensure they match the current leaderboard
  * @param {import('discord.js').Guild} discordGuild
  */
 async function upsertWagerLeaderboardMessage(discordGuild) {
@@ -123,6 +125,13 @@ async function upsertWagerLeaderboardMessage(discordGuild) {
 
   const channel = discordGuild.channels.cache.get(cfg.wagerLeaderboardChannelId);
   if (!channel) return;
+
+  // Sync Top 10 roles before updating leaderboard
+  try {
+    await updateTop10Ranks(discordGuild);
+  } catch (err) {
+    LoggerService.warn('Failed to sync Top 10 roles:', { error: err?.message });
+  }
 
   const container = await buildWagerLeaderboardEmbed(discordGuild);
   const payload = {
