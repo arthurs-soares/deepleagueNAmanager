@@ -1,5 +1,10 @@
-const { RoleSelectMenuBuilder, ActionRowBuilder } = require('discord.js');
-const { RANK_DEFINITIONS } = require('../../../utils/misc/rankConfig');
+const {
+  RoleSelectMenuBuilder,
+  ActionRowBuilder,
+  MessageFlags
+} = require('discord.js');
+const { RANK_DEFINITIONS } = require('../../utils/misc/rankConfig');
+const LoggerService = require('../../services/LoggerService');
 
 /**
  * Handle rank configuration dropdown selection
@@ -14,12 +19,14 @@ async function handle(interaction) {
     if (!rankDef) {
       return interaction.reply({
         content: '❌ Invalid rank selection.',
-        ephemeral: true
+        flags: MessageFlags.Ephemeral
       });
     }
 
     // Create role selector for the selected rank
-    const winsText = selectedValue === 'top10' ? 'Top 10' : `${rankDef.wins} Wins`;
+    const winsText = selectedValue === 'top10'
+      ? 'Top 10'
+      : `${rankDef.wins} Wins`;
     const roleSelect = new RoleSelectMenuBuilder()
       .setCustomId(`config:ranks:roleSelect:${selectedValue}`)
       .setPlaceholder(`Select role for ${rankDef.name} (${winsText})`)
@@ -29,15 +36,21 @@ async function handle(interaction) {
     const row = new ActionRowBuilder().addComponents(roleSelect);
 
     return interaction.reply({
-      content: `${rankDef.emoji} Select the role for **${rankDef.name}** (requires ${winsText}):`,
+      content: `${rankDef.emoji} Select the role for **${rankDef.name}**` +
+        ` (requires ${winsText}):`,
       components: [row],
-      ephemeral: true
+      flags: MessageFlags.Ephemeral
     });
 
   } catch (error) {
-    console.error('Error handling rank configuration selection:', error);
-    const msg = { content: '❌ Could not process selection.', ephemeral: true };
-    if (interaction.deferred || interaction.replied) return interaction.followUp(msg);
+    LoggerService.error('Error handling rank config selection:', error);
+    const msg = {
+      content: '❌ Could not process selection.',
+      flags: MessageFlags.Ephemeral
+    };
+    if (interaction.deferred || interaction.replied) {
+      return interaction.followUp(msg);
+    }
     return interaction.reply(msg);
   }
 }
