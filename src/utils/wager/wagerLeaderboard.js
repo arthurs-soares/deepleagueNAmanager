@@ -96,7 +96,7 @@ async function buildWagerLeaderboardEmbed(discordGuild) {
       const rankEmoji = getRankEmoji(rank);
 
       return `${rankEmoji} **#${rank}** <@${u.discordUserId}>\n` +
-             `🎲 **${wagers}** wagers • **${w}W/${l}L** (${wr}%)`;
+             `**${wagers}** wagers • **${w}W/${l}L** (${wr}%)`;
     });
 
     const leaderboardText = new TextDisplayBuilder()
