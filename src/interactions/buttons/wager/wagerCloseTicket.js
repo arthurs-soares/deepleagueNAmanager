@@ -15,8 +15,20 @@ async function hasClosePermission(member, guildId) {
   return isAdmin || hasRole;
 }
 
-async function getWagerChannel(guild, ticketId) {
-  const ticket = await withDatabase(() => WagerTicket.findById(ticketId), null);
+async function getWagerChannel(guild, ticketId, channelId) {
+  let ticket = await withDatabase(() => WagerTicket.findById(ticketId), null);
+
+  // Fallback: search by channel if findById fails
+  if (!ticket && channelId) {
+    ticket = await withDatabase(
+      () => WagerTicket.findOne({
+        discordGuildId: guild.id,
+        channelId
+      }),
+      null
+    );
+  }
+
   if (!ticket || !ticket.channelId) return { error: '⚠️ Wager channel not found.' };
   const channel = guild.channels.cache.get(ticket.channelId);
   if (!channel || channel.type !== ChannelType.GuildText) {
@@ -41,7 +53,11 @@ async function handle(interaction) {
       return interaction.editReply({ content: '❌ Only hosters, moderators or administrators can close the ticket.' });
     }
 
-    const { error, ticket, channel } = await getWagerChannel(interaction.guild, ticketId);
+    const { error, ticket, channel } = await getWagerChannel(
+      interaction.guild,
+      ticketId,
+      interaction.channel.id
+    );
     if (error) return interaction.editReply({ content: error });
 
     // Fetch users for display

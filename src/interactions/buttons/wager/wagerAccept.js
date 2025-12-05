@@ -118,11 +118,7 @@ async function handle(interaction) {
         new ButtonBuilder()
           .setCustomId(`wager:closeTicket:${ticket._id}`)
           .setStyle(ButtonStyle.Secondary)
-          .setLabel('Close Ticket'),
-        new ButtonBuilder()
-          .setCustomId(`wager:markDodge:${ticket._id}`)
-          .setStyle(ButtonStyle.Danger)
-          .setLabel('Mark Dodge')
+          .setLabel('Close Ticket')
       );
 
       await interaction.message.edit({
