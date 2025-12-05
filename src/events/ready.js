@@ -2,6 +2,9 @@ const { Events } = require('discord.js');
 const { scheduleAutoSync } = require('../utils/system/autoSync');
 const { scheduleDailyLeaderboard } = require('../utils/user/leaderboard');
 const {
+  scheduleDailyWagerLeaderboard
+} = require('../utils/wager/wagerLeaderboard');
+const {
   scheduleInactiveTicketMonitor,
   scheduleAutoDodgeMonitor
 } = require('../utils/tickets/inactivityMonitor');
@@ -36,6 +39,15 @@ module.exports = {
       scheduleDailyLeaderboard(client, { hour: 0, minute: 5 });
     } catch (err) {
       LoggerService.error('Failed to schedule Leaderboard:', { error: err?.message });
+    }
+
+    // Schedule daily wager leaderboard (00:10)
+    try {
+      scheduleDailyWagerLeaderboard(client, { hour: 0, minute: 10 });
+    } catch (err) {
+      LoggerService.error('Failed to schedule Wager Leaderboard:', {
+        error: err?.message
+      });
     }
 
     // Inactive ticket monitor (inactive >= 36h, reminder every 3h, scan every 30min)

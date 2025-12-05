@@ -155,5 +155,58 @@ async function upsertWagerLeaderboardMessage(discordGuild) {
   }
 }
 
-module.exports = { buildWagerLeaderboardEmbed, upsertWagerLeaderboardMessage };
+/**
+ * Schedule daily wager leaderboard updates
+ * Runs once at startup (15s delay) and then daily at desired time
+ * @param {import('discord.js').Client} client
+ * @param {{ hour?: number, minute?: number }} opts
+ */
+function scheduleDailyWagerLeaderboard(client, opts = {}) {
+  const hour = Number.isInteger(opts.hour) ? opts.hour : 0;
+  const minute = Number.isInteger(opts.minute) ? opts.minute : 10;
+
+  // Execute once after 20s (stagger from guild leaderboard)
+  setTimeout(() => {
+    client.guilds.cache.forEach(g => {
+      upsertWagerLeaderboardMessage(g).catch(() => {});
+    });
+  }, 20_000);
+
+  /**
+   * Calculate ms until next scheduled time
+   * @param {number} h - Target hour
+   * @param {number} m - Target minute
+   * @returns {number} Milliseconds until next tick
+   */
+  function msUntilNext(h, m) {
+    const now = new Date();
+    const next = new Date(now);
+    next.setHours(h, m, 0, 0);
+    if (next <= now) next.setDate(next.getDate() + 1);
+    return next - now;
+  }
+
+  /**
+   * Schedule next tick recursively
+   */
+  async function scheduleNextTick() {
+    const delay = msUntilNext(hour, minute);
+    setTimeout(async () => {
+      try {
+        for (const g of client.guilds.cache.values()) {
+          await upsertWagerLeaderboardMessage(g);
+        }
+      } catch (_) {}
+      scheduleNextTick();
+    }, delay).unref?.();
+  }
+
+  scheduleNextTick();
+}
+
+module.exports = {
+  buildWagerLeaderboardEmbed,
+  upsertWagerLeaderboardMessage,
+  scheduleDailyWagerLeaderboard
+};
 
