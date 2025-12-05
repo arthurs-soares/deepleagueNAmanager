@@ -71,6 +71,14 @@ const guildActivityLogSchema = new mongoose.Schema({
     default: null
   },
 
+  // Region (e.g., 'Europe', 'Americas')
+  region: {
+    type: String,
+    trim: true,
+    maxlength: 50,
+    default: null
+  },
+
   // Additional metadata
   metadata: {
     type: mongoose.Schema.Types.Mixed,

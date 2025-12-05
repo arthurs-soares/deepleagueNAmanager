@@ -2,13 +2,34 @@ const GuildActivityLog = require('../../models/activity/GuildActivityLog');
 const { withDatabase } = require('../../config/database');
 
 /**
+ * Parse roster string to extract roster type and region
+ * Handles both new format 'main (Europe)' and legacy 'main'
+ * @param {string} rosterInput - Roster string
+ * @returns {{roster: string|null, region: string|null}}
+ */
+function parseRosterInput(rosterInput) {
+  if (!rosterInput) return { roster: null, region: null };
+  const match = rosterInput.match(/^(main|sub)(?:\s*\(([^)]+)\))?$/i);
+  if (match) {
+    return {
+      roster: match[1].toLowerCase(),
+      region: match[2] || null
+    };
+  }
+  if (rosterInput === 'main' || rosterInput === 'sub') {
+    return { roster: rosterInput, region: null };
+  }
+  return { roster: null, region: null };
+}
+
+/**
  * Log when a member joins an in-game guild
  * @param {string} discordGuildId - Discord server ID
  * @param {string} guildId - In-game guild Mongo ID
  * @param {string} guildName - Guild name
  * @param {string} userId - Discord user ID
  * @param {string} username - User display name
- * @param {'main'|'sub'} roster - Roster type
+ * @param {string} rosterInput - Roster type (e.g., 'main' or 'main (Europe)')
  * @param {object} [metadata] - Additional data
  */
 async function logGuildMemberJoin(
@@ -17,10 +38,11 @@ async function logGuildMemberJoin(
   guildName,
   userId,
   username,
-  roster,
+  rosterInput,
   metadata = null
 ) {
   try {
+    const { roster, region } = parseRosterInput(rosterInput);
     await withDatabase(async () => {
       await GuildActivityLog.create({
         discordGuildId,
@@ -30,11 +52,11 @@ async function logGuildMemberJoin(
         userId,
         username,
         roster,
+        region,
         metadata
       });
     });
   } catch (error) {
-    // Silent failure - logging should not break functionality
     console.error('Error logging guild member join:', error.message);
   }
 }
@@ -46,7 +68,7 @@ async function logGuildMemberJoin(
  * @param {string} guildName - Guild name
  * @param {string} userId - Discord user ID
  * @param {string} username - User display name
- * @param {'main'|'sub'} roster - Roster type
+ * @param {string} rosterInput - Roster type (e.g., 'sub' or 'sub (Europe)')
  * @param {object} [metadata] - Additional data
  */
 async function logGuildMemberLeave(
@@ -55,10 +77,11 @@ async function logGuildMemberLeave(
   guildName,
   userId,
   username,
-  roster,
+  rosterInput,
   metadata = null
 ) {
   try {
+    const { roster, region } = parseRosterInput(rosterInput);
     await withDatabase(async () => {
       await GuildActivityLog.create({
         discordGuildId,
@@ -68,11 +91,11 @@ async function logGuildMemberLeave(
         userId,
         username,
         roster,
+        region,
         metadata
       });
     });
   } catch (error) {
-    // Silent failure - logging should not break functionality
     console.error('Error logging guild member leave:', error.message);
   }
 }
@@ -86,7 +109,7 @@ async function logGuildMemberLeave(
  * @param {string} inviterUsername - Inviter display name
  * @param {string} inviteeId - Discord user ID of invitee
  * @param {string} inviteeUsername - Invitee display name
- * @param {'main'|'sub'} roster - Roster type
+ * @param {string} rosterInput - Roster type (e.g., 'main' or 'main (Europe)')
  * @param {object} [metadata] - Additional data
  */
 async function logGuildInvite(
@@ -97,10 +120,11 @@ async function logGuildInvite(
   inviterUsername,
   inviteeId,
   inviteeUsername,
-  roster,
+  rosterInput,
   metadata = null
 ) {
   try {
+    const { roster, region } = parseRosterInput(rosterInput);
     await withDatabase(async () => {
       await GuildActivityLog.create({
         discordGuildId,
@@ -112,11 +136,11 @@ async function logGuildInvite(
         inviterId,
         inviterUsername,
         roster,
+        region,
         metadata
       });
     });
   } catch (error) {
-    // Silent failure - logging should not break functionality
     console.error('Error logging guild invite:', error.message);
   }
 }
