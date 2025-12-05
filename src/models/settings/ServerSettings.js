@@ -38,6 +38,8 @@ const serverSettingsSchema = new mongoose.Schema({
   warTranscriptsChannelId: { type: String, default: null },
   wagerTranscriptsChannelId: { type: String, default: null },
   generalTranscriptsChannelId: { type: String, default: null },
+  // Toggle settings
+  hosterPingEnabled: { type: Boolean, default: true },
 }, { timestamps: true });
 
 module.exports = mongoose.models.ServerSettings || mongoose.model('ServerSettings', serverSettingsSchema);

@@ -6,6 +6,7 @@ const { colors, emojis } = require('../../../config/botConfig');
 const { sendLog } = require('../../../utils/core/logger');
 const { getOpponentGuildId } = require('../../../utils/war/warUtils');
 const { getOrCreateRoleConfig } = require('../../../utils/misc/roleConfig');
+const { getOrCreateServerSettings } = require('../../../utils/system/serverSettings');
 const { sendAndPin } = require('../../../utils/tickets/pinUtils');
 const { createDisabledWarConfirmationButtons } = require('../../../utils/war/warEmbedBuilder');
 const { createSafeActionRow } = require('../../../utils/validation/componentValidation');
@@ -156,10 +157,16 @@ async function handle(interaction) {
     try {
       const warChannel = war.channelId ? interaction.guild.channels.cache.get(war.channelId) : null;
       if (warChannel && warChannel.type === ChannelType.GuildText) {
-        // Mention hosters only once: at the time of acceptance
+        // Check if hoster pings are enabled for this server
+        const serverSettings = await getOrCreateServerSettings(interaction.guild.id);
+        const hosterPingEnabled = serverSettings.hosterPingEnabled !== false;
+
+        // Mention hosters only once: at the time of acceptance (if enabled)
         const rolesCfg = await getOrCreateRoleConfig(interaction.guild.id);
         const hosterRoleIds = rolesCfg?.hostersRoleIds || [];
-        const hosterMentions = hosterRoleIds.length ? hosterRoleIds.map(id => `<@&${id}>`).join(' ') : '';
+        const hosterMentions = hosterPingEnabled && hosterRoleIds.length
+          ? hosterRoleIds.map(id => `<@&${id}>`).join(' ')
+          : '';
 
         try {
           await warChannel.send({

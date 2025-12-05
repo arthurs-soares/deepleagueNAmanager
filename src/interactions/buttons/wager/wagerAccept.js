@@ -2,6 +2,7 @@ const { ActionRowBuilder, ButtonBuilder, ButtonStyle, PermissionFlagsBits, Messa
 const { ContainerBuilder, TextDisplayBuilder, SectionBuilder, SeparatorBuilder } = require('@discordjs/builders');
 const WagerTicket = require('../../../models/wager/WagerTicket');
 const { getOrCreateRoleConfig } = require('../../../utils/misc/roleConfig');
+const { getOrCreateServerSettings } = require('../../../utils/system/serverSettings');
 const { colors, emojis } = require('../../../config/botConfig');
 const { sendAndPin } = require('../../../utils/tickets/pinUtils');
 const { isDatabaseConnected } = require('../../../config/database');
@@ -89,9 +90,15 @@ async function handle(interaction) {
       LoggerService.warn('Failed to disable accept button:', { error: err?.message });
     }
 
+    // Check if hoster pings are enabled for this server
+    const serverSettings = await getOrCreateServerSettings(interaction.guild.id);
+    const hosterPingEnabled = serverSettings.hosterPingEnabled !== false;
+
     // Mention hosters (roles) to evaluate and decide - ONLY on acceptance, not creation
     const hosterRoleIds = cfg?.hostersRoleIds || [];
-    const hostersMention = hosterRoleIds.length ? hosterRoleIds.map(id => `<@&${id}>`).join(' ') : null;
+    const hostersMention = hosterPingEnabled && hosterRoleIds.length
+      ? hosterRoleIds.map(id => `<@&${id}>`).join(' ')
+      : null;
     const participantsMention = `<@${ticket.initiatorUserId}> vs <@${ticket.opponentUserId}>`;
 
     if (hostersMention) {

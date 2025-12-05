@@ -8,6 +8,7 @@ const LoggerService = require('../../services/LoggerService');
 const adminWar = require('../../utils/commands/adminWar');
 const adminWager = require('../../utils/commands/adminWager');
 const adminSystem = require('../../utils/commands/adminSystem');
+const adminSettings = require('../../utils/commands/adminSettings');
 
 async function warMarkDodge(interaction) {
   return adminWar.markDodge(interaction);
@@ -112,6 +113,24 @@ module.exports = {
         .setName('db-reset')
         .setDescription('Reset database connection state')
       )
+    )
+
+    // SETTINGS domain
+    .addSubcommandGroup(g => g
+      .setName('settings')
+      .setDescription('Server settings administration')
+      .addSubcommand(sc => sc
+        .setName('hostping')
+        .setDescription('Enable/disable hoster pings on war/wager acceptance')
+        .addStringOption(o => o
+          .setName('status')
+          .setDescription('Enable or disable hoster pings')
+          .setRequired(true)
+          .addChoices(
+            { name: 'Enabled', value: 'enabled' },
+            { name: 'Disabled', value: 'disabled' }
+          ))
+      )
     ),
 
   category: 'Admin',
@@ -189,6 +208,10 @@ module.exports = {
       }
       if (group === 'system' && sub === 'db-reset') {
         return adminSystem.dbReset(interaction);
+      }
+
+      if (group === 'settings' && sub === 'hostping') {
+        return adminSettings.hostping(interaction);
       }
 
       return replyEphemeral(interaction, { content: 'Unknown subcommand.' });
