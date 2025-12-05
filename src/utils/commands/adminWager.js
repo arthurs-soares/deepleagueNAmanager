@@ -49,37 +49,72 @@ async function record(interaction) {
 }
 
 /**
- * Set wager wins for a user
+ * Set wager stats for a user (wins, losses, games played auto-calculated)
  * @param {import('discord.js').ChatInputCommandInteraction} interaction
  */
-async function setWins(interaction) {
+async function setStats(interaction) {
   await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
   const targetUser = interaction.options.getUser('user', true);
-  const wins = interaction.options.getInteger('wins', true);
+  const wins = interaction.options.getInteger('wins') ?? null;
+  const losses = interaction.options.getInteger('losses') ?? null;
 
-  if (wins < 0) {
+  if (wins === null && losses === null) {
+    return interaction.editReply({
+      content: '❌ You must provide at least wins or losses.'
+    });
+  }
+
+  if (wins !== null && wins < 0) {
     return interaction.editReply({ content: '❌ Wins cannot be negative.' });
+  }
+
+  if (losses !== null && losses < 0) {
+    return interaction.editReply({ content: '❌ Losses cannot be negative.' });
   }
 
   const profile = await getOrCreateUserProfile(targetUser.id);
   const oldWins = profile.wagerWins || 0;
+  const oldLosses = profile.wagerLosses || 0;
+  const oldGames = profile.wagerGamesPlayed || 0;
 
-  profile.wagerWins = wins;
+  // Update wins if provided
+  if (wins !== null) {
+    profile.wagerWins = wins;
+  }
+
+  // Update losses if provided
+  if (losses !== null) {
+    profile.wagerLosses = losses;
+  }
+
+  // Auto-calculate games played = wins + losses
+  const newWins = profile.wagerWins || 0;
+  const newLosses = profile.wagerLosses || 0;
+  profile.wagerGamesPlayed = newWins + newLosses;
+
   await profile.save();
 
   // Audit log
   try {
-    await auditAdminAction(interaction.guild, interaction.user.id, 'Set Wager Wins', {
-      targetUserId: targetUser.id,
-      extra: `Changed from ${oldWins} to ${wins}`
-    });
+    await auditAdminAction(
+      interaction.guild,
+      interaction.user.id,
+      'Set Wager Stats',
+      {
+        targetUserId: targetUser.id,
+        extra: `W: ${oldWins}→${newWins}, L: ${oldLosses}→${newLosses}, G: ${oldGames}→${profile.wagerGamesPlayed}`
+      }
+    );
   } catch (_) {}
 
   return interaction.editReply({
-    content: `✅ Set **${targetUser.tag}**'s wager wins to **${wins}** (was ${oldWins}).`
+    content: `✅ Updated **${targetUser.tag}**'s wager stats:\n` +
+      `• Wins: **${oldWins}** → **${newWins}**\n` +
+      `• Losses: **${oldLosses}** → **${newLosses}**\n` +
+      `• Games Played: **${oldGames}** → **${profile.wagerGamesPlayed}**`
   });
 }
 
-module.exports = { record, setWins };
+module.exports = { record, setStats };
 

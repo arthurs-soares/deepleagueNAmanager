@@ -80,8 +80,8 @@ module.exports = {
           .setRequired(true))
       )
       .addSubcommand(sc => sc
-        .setName('set-wins')
-        .setDescription('Set wager wins for a user')
+        .setName('set-stats')
+        .setDescription('Set wager stats for a user (wins, losses)')
         .addUserOption(o => o
           .setName('user')
           .setDescription('Target user')
@@ -89,7 +89,12 @@ module.exports = {
         .addIntegerOption(o => o
           .setName('wins')
           .setDescription('Number of wins to set')
-          .setRequired(true)
+          .setRequired(false)
+          .setMinValue(0))
+        .addIntegerOption(o => o
+          .setName('losses')
+          .setDescription('Number of losses to set')
+          .setRequired(false)
           .setMinValue(0))
       )
     )
@@ -194,7 +199,7 @@ module.exports = {
       if (group === 'war' && sub === 'revert-result') return adminWar.revertResult(interaction);
 
       if (group === 'wager' && sub === 'record') return adminWager.record(interaction);
-      if (group === 'wager' && sub === 'set-wins') return adminWager.setWins(interaction);
+      if (group === 'wager' && sub === 'set-stats') return adminWager.setStats(interaction);
 
       if (group === 'system' && sub === 'sync') return adminSystem.sync(interaction);
       if (group === 'system' && sub === 'db-status') return adminSystem.dbStatus(interaction);
