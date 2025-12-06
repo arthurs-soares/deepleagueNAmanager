@@ -43,6 +43,8 @@ function resolveSelectHandler(customId) {
   if (customId === 'config:channels:selectWarCategoryNAW') return '../interactions/channel-selects/configWarCategoryNAWSelect';
   if (customId === 'config:channels:selectWarCategoryEU') return '../interactions/channel-selects/configWarCategoryEUSelect';
   if (customId === 'config:channels:selectWagerCategory') return '../interactions/channel-selects/configWagerCategorySelect';
+  if (customId === 'config:channels:selectWagerCategory2') return '../interactions/channel-selects/configWagerCategory2Select';
+  if (customId === 'config:channels:selectWagerCategory3') return '../interactions/channel-selects/configWagerCategory3Select';
   if (customId === 'config:channels:selectGeneralTicketsCategory') return '../interactions/channel-selects/configGeneralTicketsCategorySelect';
   if (customId === 'config:channels:selectWarDodge') return '../interactions/channel-selects/configWarDodgeSelect';
   if (customId === 'config:channels:selectWagerDodge') return '../interactions/channel-selects/configWagerDodgeSelect';
