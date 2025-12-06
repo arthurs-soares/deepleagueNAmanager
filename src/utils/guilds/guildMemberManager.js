@@ -10,7 +10,7 @@ const { ensureRegionsArray } = require('./guildDocHelpers');
 
 /**
  * Check if the user is the guild leader
- * Only considers members with role='lider'
+ * Checks members array for role='lider' and falls back to registeredBy
  * @param {object} guildDoc - Guild document
  * @param {string} userId - Discord user ID
  * @returns {boolean}
@@ -20,7 +20,20 @@ function isGuildLeader(guildDoc, userId) {
 
   // Check if they are in members with role='lider'
   const members = Array.isArray(guildDoc.members) ? guildDoc.members : [];
-  return members.some(m => m.userId === userId && m.role === 'lider');
+  const isLeaderInMembers = members.some(
+    m => m.userId === userId && m.role === 'lider'
+  );
+
+  if (isLeaderInMembers) return true;
+
+  // Fallback: check registeredBy for legacy guilds without members array
+  if (guildDoc.registeredBy === userId) {
+    // If no leader in members, registeredBy is the leader
+    const hasLeaderInMembers = members.some(m => m.role === 'lider');
+    if (!hasLeaderInMembers) return true;
+  }
+
+  return false;
 }
 
 /**
