@@ -31,8 +31,14 @@ function buildChannelConfigOptions() {
       .setLabel('War Category (EU)').setDescription('Category for Europe war channels')
       .setValue('warCategoryEU').setEmoji('🌍'),
     new StringSelectMenuOptionBuilder()
-      .setLabel('Wager Category').setDescription('Category for wager channels')
+      .setLabel('Wager Category 1').setDescription('Primary category for wager channels')
       .setValue('wagerCategory').setEmoji('📁'),
+    new StringSelectMenuOptionBuilder()
+      .setLabel('Wager Category 2').setDescription('Secondary category (overflow)')
+      .setValue('wagerCategory2').setEmoji('📁'),
+    new StringSelectMenuOptionBuilder()
+      .setLabel('Wager Category 3').setDescription('Tertiary category (overflow)')
+      .setValue('wagerCategory3').setEmoji('📁'),
     new StringSelectMenuOptionBuilder()
       .setLabel('General Tickets Category').setDescription('Category for general ticket channels')
       .setValue('generalTicketsCategory').setEmoji('📁'),
@@ -104,7 +110,9 @@ function buildChannelsDisplayText(cfg) {
     `**War Category (NAE):** ${ch(cfg.warCategoryNAEId)}\n` +
     `**War Category (NAW):** ${ch(cfg.warCategoryNAWId)}\n` +
     `**War Category (EU):** ${ch(cfg.warCategoryEUId)}\n` +
-    `**Wager Category:** ${ch(cfg.wagerCategoryId)}\n` +
+    `**Wager Category 1:** ${ch(cfg.wagerCategoryId)}\n` +
+    `**Wager Category 2:** ${ch(cfg.wagerCategoryId2)}\n` +
+    `**Wager Category 3:** ${ch(cfg.wagerCategoryId3)}\n` +
     `**General Tickets Category:** ${ch(cfg.generalTicketsCategoryId)}\n` +
     `**War Transcripts Channel:** ${ch(cfg.warTranscriptsChannelId)}\n` +
     `**Wager Transcripts Channel:** ${ch(cfg.wagerTranscriptsChannelId)}\n` +

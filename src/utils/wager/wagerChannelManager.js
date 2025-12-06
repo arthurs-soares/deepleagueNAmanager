@@ -22,6 +22,16 @@ class CategoryFullError extends Error {
 }
 
 /**
+ * Custom error when all wager categories are full
+ */
+class AllCategoriesFullError extends Error {
+  constructor() {
+    super('All configured wager categories are full (50 channels each).');
+    this.name = 'AllCategoriesFullError';
+  }
+}
+
+/**
  * Check if a category has room for more channels
  * @param {import('discord.js').CategoryChannel} category
  * @returns {{ canCreate: boolean, count: number }}
@@ -29,6 +39,44 @@ class CategoryFullError extends Error {
 function checkCategoryCapacity(category) {
   const count = category.children.cache.size;
   return { canCreate: count < MAX_CHANNELS_PER_CATEGORY, count };
+}
+
+/**
+ * Find an available wager category from the configured categories
+ * @param {import('discord.js').Guild} guild - Discord guild
+ * @param {Object} settings - Server settings with category IDs
+ * @returns {{ category: import('discord.js').CategoryChannel, error: string|null }}
+ */
+function findAvailableWagerCategory(guild, settings) {
+  const categoryIds = [
+    settings.wagerCategoryId,
+    settings.wagerCategoryId2,
+    settings.wagerCategoryId3
+  ].filter(Boolean);
+
+  if (categoryIds.length === 0) {
+    return {
+      category: null,
+      error: '⚠️ No wager categories configured. Set them in /config → Channels.'
+    };
+  }
+
+  for (const catId of categoryIds) {
+    const category = guild.channels.cache.get(catId);
+    if (!category || category.type !== ChannelType.GuildCategory) {
+      continue;
+    }
+    const { canCreate } = checkCategoryCapacity(category);
+    if (canCreate) {
+      return { category, error: null };
+    }
+  }
+
+  return {
+    category: null,
+    error: '❌ All wager categories are full (50 channels each).\n' +
+      'Please ask a staff member to close old wager tickets.'
+  };
 }
 
 /**
@@ -217,6 +265,9 @@ async function createWagerChannel2v2(
 
 module.exports = {
   CategoryFullError,
+  AllCategoriesFullError,
+  checkCategoryCapacity,
+  findAvailableWagerCategory,
   createWagerChannel,
   createWagerChannel2v2,
   unlockChannelForUsers

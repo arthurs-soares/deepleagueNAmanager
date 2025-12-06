@@ -1,5 +1,4 @@
 const {
-  ChannelType,
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
@@ -17,7 +16,8 @@ const {
 } = require('../../../utils/misc/roleConfig');
 const {
   createWagerChannel2v2,
-  CategoryFullError
+  CategoryFullError,
+  findAvailableWagerCategory
 } = require('../../../utils/wager/wagerChannelManager');
 const { sendAndPin } = require('../../../utils/tickets/pinUtils');
 const WagerTicket = require('../../../models/wager/WagerTicket');
@@ -70,19 +70,14 @@ async function handle(interaction) {
 
     const settings = await getOrCreateServerSettings(guildId);
 
-    const catId = settings.wagerCategoryId;
-    if (!catId) {
-      return interaction.editReply({
-        content: '⚠️ Category for wager channels not configured. ' +
-          'Set it in /config → Channels.'
-      });
-    }
+    // Find an available category from the configured wager categories
+    const { category, error: catError } = findAvailableWagerCategory(
+      interaction.guild,
+      settings
+    );
 
-    const category = interaction.guild.channels.cache.get(catId);
-    if (!category || category.type !== ChannelType.GuildCategory) {
-      return interaction.editReply({
-        content: '❌ Configured category is invalid.'
-      });
+    if (catError) {
+      return interaction.editReply({ content: catError });
     }
 
     const roleIdsHosters = roleCfg?.hostersRoleIds || [];

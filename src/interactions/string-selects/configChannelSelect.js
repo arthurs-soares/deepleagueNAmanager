@@ -47,7 +47,17 @@ async function handle(interaction) {
       },
       wagerCategory: {
         customId: 'config:channels:selectWagerCategory',
-        placeholder: 'Select a category for wager channels',
+        placeholder: 'Select primary category for wager channels',
+        types: [ChannelType.GuildCategory]
+      },
+      wagerCategory2: {
+        customId: 'config:channels:selectWagerCategory2',
+        placeholder: 'Select secondary category for wager channels',
+        types: [ChannelType.GuildCategory]
+      },
+      wagerCategory3: {
+        customId: 'config:channels:selectWagerCategory3',
+        placeholder: 'Select tertiary category for wager channels',
         types: [ChannelType.GuildCategory]
       },
       generalTicketsCategory: {
