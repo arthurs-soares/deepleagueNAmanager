@@ -93,9 +93,13 @@ function buildAccountField(member, user) {
   };
 }
 
-async function buildActionComponents(isSelf, hasGuild) {
-  if (!isSelf) return [];
-  const row = new ActionRowBuilder().addComponents(
+/**
+ * Build action row for profile buttons
+ * @param {boolean} hasGuild - Whether user has a guild
+ * @returns {ActionRowBuilder} Action row with buttons
+ */
+function buildActionRow(hasGuild) {
+  return new ActionRowBuilder().addComponents(
     new ButtonBuilder()
       .setCustomId('profile:edit')
       .setStyle(ButtonStyle.Primary)
@@ -108,7 +112,6 @@ async function buildActionComponents(isSelf, hasGuild) {
       .setEmoji('🚪')
       .setDisabled(!hasGuild)
   );
-  return [row];
 }
 
 async function buildUserProfileDisplayComponents(
@@ -196,14 +199,16 @@ async function buildUserProfileDisplayComponents(
     );
   container.addTextDisplayComponents(footer);
 
+  // Add action row to container for v2 compatibility
   const hasGuild = guildField.value
     && !guildField.value.includes('Not in any guild');
-  const components = await buildActionComponents(
-    targetUser.id === viewerUser.id,
-    hasGuild
-  );
+  const isSelf = targetUser.id === viewerUser.id;
+  if (isSelf) {
+    const actionRow = buildActionRow(hasGuild);
+    container.addActionRowComponents(actionRow);
+  }
 
-  return { container, components };
+  return { container };
 }
 
 module.exports = { buildUserProfileDisplayComponents };

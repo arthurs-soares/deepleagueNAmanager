@@ -29,14 +29,14 @@ async function handleProfile(interaction) {
     await interaction.deferReply();
 
     const target = interaction.options.getUser('target') || interaction.user;
-    const { container, components } = await buildUserProfileDisplayComponents(
+    const { container } = await buildUserProfileDisplayComponents(
       interaction.guild,
       interaction.user,
       target
     );
 
     await interaction.editReply({
-      components: [container, ...components],
+      components: [container],
       flags: MessageFlags.IsComponentsV2
     });
   } catch (error) {
