@@ -52,6 +52,7 @@ module.exports = {
    * Handle /wager stats
    */
   async handleStats(interaction) {
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
     try {
       const target = interaction.options.getUser('user') || interaction.user;
       const p = await getOrCreateUserProfile(target.id);
@@ -102,15 +103,14 @@ module.exports = {
         timestampText
       );
 
-      return interaction.reply({
+      return interaction.editReply({
         components: [container],
         flags: MessageFlags.IsComponentsV2
       });
     } catch (error) {
       LoggerService.error('Error in /wager stats:', { error: error.message });
-      return interaction.reply({
-        content: '❌ An error occurred.',
-        flags: MessageFlags.Ephemeral
+      return interaction.editReply({
+        content: '❌ An error occurred.'
       });
     }
   },
@@ -119,9 +119,10 @@ module.exports = {
    * Handle /wager leaderboard
    */
   async handleLeaderboard(interaction) {
+    await interaction.deferReply();
     try {
       const container = await buildWagerLeaderboardEmbed(interaction.guild);
-      return interaction.reply({
+      return interaction.editReply({
         components: [container],
         flags: MessageFlags.IsComponentsV2,
         allowedMentions: { parse: [] }
@@ -130,9 +131,8 @@ module.exports = {
       LoggerService.error('Error in /wager leaderboard:', {
         error: error.message
       });
-      return interaction.reply({
-        content: '❌ An error occurred.',
-        flags: MessageFlags.Ephemeral
+      return interaction.editReply({
+        content: '❌ An error occurred.'
       });
     }
   }
