@@ -232,6 +232,7 @@ async function updateRanksAfterWager(discordGuild, userId, wagerWins) {
 
 module.exports = {
   getRankForWins,
+  getAllRankRoleIds,
   updateUserRank,
   updateTop10Ranks,
   updateRanksAfterWager

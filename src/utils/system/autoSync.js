@@ -1,6 +1,7 @@
 const Guild = require('../../models/guild/Guild');
 const War = require('../../models/war/War');
 const { syncAllRosterForums } = require('../roster/rosterForumSync');
+const { syncAllRanks } = require('../ranks/rankSync');
 const { sendLog } = require('../core/logger');
 const { withDatabase } = require('../../config/database');
 const LoggerService = require('../../services/LoggerService');
@@ -51,13 +52,14 @@ async function runAutoSyncPass(client) {
     });
   }
 
-  // For each current server, sync forums and log
+  // For each current server, sync forums, ranks and log
   for (const guild of client.guilds.cache.values()) {
     try {
       await syncAllRosterForums(guild);
+      await syncAllRanks(guild);
       await sendLog(
         guild, 'Automatic synchronization',
-        'Roster synchronization completed successfully.'
+        'Roster and rank synchronization completed successfully.'
       );
     } catch (err) {
       LoggerService.error(`[AutoSync] Error syncing guild ${guild.id}:`, {
