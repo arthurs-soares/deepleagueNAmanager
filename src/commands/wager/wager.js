@@ -123,7 +123,8 @@ module.exports = {
       const container = await buildWagerLeaderboardEmbed(interaction.guild);
       return interaction.reply({
         components: [container],
-        flags: MessageFlags.IsComponentsV2
+        flags: MessageFlags.IsComponentsV2,
+        allowedMentions: { parse: [] }
       });
     } catch (error) {
       LoggerService.error('Error in /wager leaderboard:', {

@@ -205,7 +205,8 @@ async function upsertEventPointsLeaderboard(discordGuild) {
         );
         await msg.edit({
           components: [container],
-          flags: MessageFlags.IsComponentsV2
+          flags: MessageFlags.IsComponentsV2,
+          allowedMentions: { parse: [] }
         });
         return { ok: true, updated: true };
       } catch (fetchErr) {
@@ -220,7 +221,8 @@ async function upsertEventPointsLeaderboard(discordGuild) {
     // Send new message
     const sent = await channel.send({
       components: [container],
-      flags: MessageFlags.IsComponentsV2
+      flags: MessageFlags.IsComponentsV2,
+      allowedMentions: { parse: [] }
     });
     await setEventPointsLeaderboardMessage(discordGuild.id, sent.id);
     try { await sent.pin(); } catch (_) {}

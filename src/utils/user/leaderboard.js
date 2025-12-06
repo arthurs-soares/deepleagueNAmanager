@@ -85,7 +85,11 @@ async function upsertLeaderboardMessage(discordGuild) {
   if (settings.leaderboardMessageId) {
     try {
       const msg = await channel.messages.fetch(settings.leaderboardMessageId);
-      await msg.edit({ components: [container], flags: MessageFlags.IsComponentsV2 });
+      await msg.edit({
+        components: [container],
+        flags: MessageFlags.IsComponentsV2,
+        allowedMentions: { parse: [] }
+      });
       return { ok: true, updated: true };
     } catch (_) {
       // continue to create new one
@@ -93,7 +97,11 @@ async function upsertLeaderboardMessage(discordGuild) {
   }
 
   // Send new message
-  const sent = await channel.send({ components: [container], flags: MessageFlags.IsComponentsV2 });
+  const sent = await channel.send({
+    components: [container],
+    flags: MessageFlags.IsComponentsV2,
+    allowedMentions: { parse: [] }
+  });
   await setLeaderboardMessage(discordGuild.id, sent.id);
   try { await sent.pin(); } catch (_) {}
   return { ok: true, created: true };
