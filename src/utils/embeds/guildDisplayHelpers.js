@@ -112,24 +112,32 @@ function buildRegionSelector(customIdPrefix, guildId, activeRegions, currentRegi
  * @returns {{mainRoster: string[], subRoster: string[]}}
  */
 function getRegionRosters(guild, region) {
+  // Legacy global rosters (fallback)
+  const legacyMain = Array.isArray(guild.mainRoster) ? guild.mainRoster : [];
+  const legacySub = Array.isArray(guild.subRoster) ? guild.subRoster : [];
+
   if (!region || !Array.isArray(guild.regions)) {
     // Fallback to legacy global rosters
     return {
-      mainRoster: Array.isArray(guild.mainRoster) ? guild.mainRoster : [],
-      subRoster: Array.isArray(guild.subRoster) ? guild.subRoster : []
+      mainRoster: legacyMain,
+      subRoster: legacySub
     };
   }
 
   const regionData = guild.regions.find(r => r.region === region);
   if (!regionData) {
-    return { mainRoster: [], subRoster: [] };
+    // Region not found, use legacy rosters
+    return { mainRoster: legacyMain, subRoster: legacySub };
   }
 
+  const regionMain = Array.isArray(regionData.mainRoster) ? regionData.mainRoster : [];
+  const regionSub = Array.isArray(regionData.subRoster) ? regionData.subRoster : [];
+
+  // If region rosters are empty but legacy rosters have data, use legacy
+  // This handles guilds that haven't been migrated to region-specific rosters yet
   return {
-    mainRoster: Array.isArray(regionData.mainRoster)
-      ? regionData.mainRoster : [],
-    subRoster: Array.isArray(regionData.subRoster)
-      ? regionData.subRoster : []
+    mainRoster: regionMain.length > 0 ? regionMain : legacyMain,
+    subRoster: regionSub.length > 0 ? regionSub : legacySub
   };
 }
 

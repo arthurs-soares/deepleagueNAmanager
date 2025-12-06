@@ -25,22 +25,24 @@ async function handle(interaction) {
     const cfg = await getOrCreateRoleConfig(interaction.guild.id);
     const leaderId = cfg.leadersRoleId;
     const coLeaderId = cfg.coLeadersRoleId;
+    const managerId = cfg.managersRoleId;
 
-    if (!leaderId && !coLeaderId) {
+    if (!leaderId && !coLeaderId && !managerId) {
       return replyEphemeral(interaction, {
-        content: '⚠️ Leader/Co-leader roles not configured.',
+        content: '⚠️ Leader/Co-leader/Manager roles not configured.',
       });
     }
 
     const member = interaction.member;
     const hasRole = Boolean(
       (leaderId && member.roles.cache.has(leaderId)) ||
-      (coLeaderId && member.roles.cache.has(coLeaderId))
+      (coLeaderId && member.roles.cache.has(coLeaderId)) ||
+      (managerId && member.roles.cache.has(managerId))
     );
 
     if (!hasRole) {
       return replyEphemeral(interaction, {
-        content: '❌ You need the Leader or Co-leader role.',
+        content: '❌ You need the Leader, Co-leader or Manager role.',
       });
     }
 
@@ -50,7 +52,7 @@ async function handle(interaction) {
     );
     if (!userGuilds.length) {
       return replyEphemeral(interaction, {
-        content: '❌ You are not a leader/co-leader of any guild.'
+        content: '❌ You are not a leader, co-leader, or manager of any guild.'
       });
     }
 

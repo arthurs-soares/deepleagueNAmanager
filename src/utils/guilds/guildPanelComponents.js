@@ -17,7 +17,7 @@ function hasCoLeader(guildDoc) {
  * Hierarchy: Leader (3) > Co-leader (2) > Manager (1) > Member (0)
  * - Edit Roster: Leader, Co-leader, Manager
  * - Transfer Leadership: Leader only
- * - Edit Data: Leader, Co-leader
+ * - Edit Data: Leader, Co-leader, Manager
  * - Add/Change Co-leader: Leader only (or admin)
  * @param {object} guildDoc - Guild document (Mongo)
  * @param {string} [currentUserId] - ID of the user viewing the panel
@@ -55,8 +55,8 @@ function buildGuildPanelComponents(guildDoc, currentUserId, opts = {}) {
     rowButtons.push(transferLeadBtn);
   }
 
-  // Edit Data: Level 2+ (Co-leader, Leader)
-  if (effectiveLevel >= 2) {
+  // Edit Data: Level 1+ (Manager, Co-leader, Leader)
+  if (effectiveLevel >= 1) {
     const editDataBtn = new ButtonBuilder()
       .setCustomId(`guild_panel:edit_data:${guildId}`)
       .setLabel('Edit Data')

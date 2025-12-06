@@ -131,15 +131,37 @@ async function buildGuildPanelDisplayComponents(guild, _discordGuild, selectedRe
   );
   container.addSectionComponents(managersSection);
 
-  // Members count - aggregate from all regions' rosters
+  // Members count - aggregate all unique guild members
   const uniqueIds = new Set();
+
+  // Add all users from members array (leader, co-leader, members)
+  const membersArr = Array.isArray(guild.members) ? guild.members : [];
+  for (const m of membersArr) {
+    if (m.userId) uniqueIds.add(m.userId);
+  }
+
+  // Add managers
+  const managersArr = Array.isArray(guild.managers) ? guild.managers : [];
+  for (const managerId of managersArr) {
+    if (managerId) uniqueIds.add(managerId);
+  }
+
+  // Add all users from regions' rosters
   const allRegions = Array.isArray(guild.regions) ? guild.regions : [];
   for (const reg of allRegions) {
     const regionMain = Array.isArray(reg.mainRoster) ? reg.mainRoster : [];
     const regionSub = Array.isArray(reg.subRoster) ? reg.subRoster : [];
-    regionMain.forEach(id => uniqueIds.add(id));
-    regionSub.forEach(id => uniqueIds.add(id));
+    regionMain.forEach(id => { if (id) uniqueIds.add(id); });
+    regionSub.forEach(id => { if (id) uniqueIds.add(id); });
   }
+
+  // Add legacy global rosters (for guilds not yet migrated)
+  const legacyMain = Array.isArray(guild.mainRoster) ? guild.mainRoster : [];
+  const legacySub = Array.isArray(guild.subRoster) ? guild.subRoster : [];
+  legacyMain.forEach(id => { if (id) uniqueIds.add(id); });
+  legacySub.forEach(id => { if (id) uniqueIds.add(id); });
+
+  // Add registeredBy user
   if (guild.registeredBy) uniqueIds.add(guild.registeredBy);
   const memberCount = uniqueIds.size;
   const membersText = new TextDisplayBuilder()
