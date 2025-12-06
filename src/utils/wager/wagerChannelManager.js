@@ -1,6 +1,36 @@
 // Wager channel management utilities (mirrors war/channelManager with users)
 const { ChannelType, PermissionFlagsBits } = require('discord.js');
 
+/** Discord's maximum channels per category */
+const MAX_CHANNELS_PER_CATEGORY = 50;
+
+/**
+ * Custom error for category channel limit
+ */
+class CategoryFullError extends Error {
+  /**
+   * @param {string} categoryName - Category name
+   * @param {number} currentCount - Current channel count
+   */
+  constructor(categoryName, currentCount) {
+    super(`Category "${categoryName}" has reached the maximum ` +
+      `of ${MAX_CHANNELS_PER_CATEGORY} channels (${currentCount})`);
+    this.name = 'CategoryFullError';
+    this.categoryName = categoryName;
+    this.currentCount = currentCount;
+  }
+}
+
+/**
+ * Check if a category has room for more channels
+ * @param {import('discord.js').CategoryChannel} category
+ * @returns {{ canCreate: boolean, count: number }}
+ */
+function checkCategoryCapacity(category) {
+  const count = category.children.cache.size;
+  return { canCreate: count < MAX_CHANNELS_PER_CATEGORY, count };
+}
+
 /**
  * Generate channel name for 1v1 wager
  * @param {string} initiatorTag
@@ -100,6 +130,7 @@ async function unlockChannelForUsers(channel, userIds) {
  * @param {Set<string>} userIds
  * @param {string[]} roleIdsHosters
  * @returns {Promise<import('discord.js').TextChannel>}
+ * @throws {CategoryFullError} If category has reached 50 channels
  */
 async function createWagerChannel(
   guild,
@@ -109,6 +140,12 @@ async function createWagerChannel(
   userIds,
   roleIdsHosters
 ) {
+  // Check category capacity before creating
+  const { canCreate, count } = checkCategoryCapacity(category);
+  if (!canCreate) {
+    throw new CategoryFullError(category.name, count);
+  }
+
   const initiatorName = initiator.tag || initiator.username || initiator.id;
   const opponentName = opponent.tag || opponent.username || opponent.id;
   const name = generateChannelName(initiatorName, opponentName);
@@ -138,6 +175,7 @@ async function createWagerChannel(
  * @param {Set<string>} userIds
  * @param {string[]} roleIdsHosters
  * @returns {Promise<import('discord.js').TextChannel>}
+ * @throws {CategoryFullError} If category has reached 50 channels
  */
 async function createWagerChannel2v2(
   guild,
@@ -149,6 +187,12 @@ async function createWagerChannel2v2(
   userIds,
   roleIdsHosters
 ) {
+  // Check category capacity before creating
+  const { canCreate, count } = checkCategoryCapacity(category);
+  if (!canCreate) {
+    throw new CategoryFullError(category.name, count);
+  }
+
   const initiatorName = initiator.tag || initiator.username || initiator.id;
   const teammateName = teammate.tag || teammate.username || teammate.id;
   const name = generate2v2ChannelName(initiatorName, teammateName);
@@ -166,11 +210,13 @@ async function createWagerChannel2v2(
     type: ChannelType.GuildText,
     parent: category.id,
     permissionOverwrites,
-    reason: `2v2 Wager: ${initiatorName} & ${teammateName} vs ${opp1Name} & ${opp2Name}`
+    reason: `2v2 Wager: ${initiatorName} & ${teammateName} ` +
+      `vs ${opp1Name} & ${opp2Name}`
   });
 }
 
 module.exports = {
+  CategoryFullError,
   createWagerChannel,
   createWagerChannel2v2,
   unlockChannelForUsers

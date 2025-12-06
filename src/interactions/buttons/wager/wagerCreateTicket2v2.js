@@ -16,7 +16,8 @@ const {
   getOrCreateRoleConfig
 } = require('../../../utils/misc/roleConfig');
 const {
-  createWagerChannel2v2
+  createWagerChannel2v2,
+  CategoryFullError
 } = require('../../../utils/wager/wagerChannelManager');
 const { sendAndPin } = require('../../../utils/tickets/pinUtils');
 const WagerTicket = require('../../../models/wager/WagerTicket');
@@ -182,6 +183,20 @@ async function handle(interaction) {
       content: `✅ 2v2 Wager ticket created: <#${channel.id}>`
     });
   } catch (error) {
+    // Handle category full error with user-friendly message
+    if (error instanceof CategoryFullError) {
+      LoggerService.warn('Wager category full:', error.message);
+      const msg = {
+        content: '❌ The wager category is full (50 channels max).\n' +
+          'Please ask a staff member to close old wager tickets.',
+        flags: MessageFlags.Ephemeral
+      };
+      if (interaction.deferred || interaction.replied) {
+        return interaction.followUp(msg);
+      }
+      return interaction.reply(msg);
+    }
+
     LoggerService.error('Error creating 2v2 wager ticket:', error);
     const msg = {
       content: '❌ Could not create the 2v2 wager ticket.',

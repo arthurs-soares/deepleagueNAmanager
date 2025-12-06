@@ -21,7 +21,7 @@ module.exports = {
     // Custom Discord emojis
     success: '<:dl_check:1446181299235721226>',
     error: '<:dl_x:1446181293896503399>',
-    warning: '<:dl_warn:1446181291988095036>',
+    warning: '⚠️',
     loading: '<:dl_loading:1446181299235721226>',
     info: 'ℹ️',
     guild: '<:dl_leader:1446150269531459604>',

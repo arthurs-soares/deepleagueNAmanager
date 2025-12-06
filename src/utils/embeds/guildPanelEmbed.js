@@ -131,10 +131,15 @@ async function buildGuildPanelDisplayComponents(guild, _discordGuild, selectedRe
   );
   container.addSectionComponents(managersSection);
 
-  // Members count directly below Managers (before separator)
-  const mainRoster = Array.isArray(guild.mainRoster) ? guild.mainRoster : [];
-  const subRoster = Array.isArray(guild.subRoster) ? guild.subRoster : [];
-  const uniqueIds = new Set([...mainRoster, ...subRoster]);
+  // Members count - aggregate from all regions' rosters
+  const uniqueIds = new Set();
+  const allRegions = Array.isArray(guild.regions) ? guild.regions : [];
+  for (const reg of allRegions) {
+    const regionMain = Array.isArray(reg.mainRoster) ? reg.mainRoster : [];
+    const regionSub = Array.isArray(reg.subRoster) ? reg.subRoster : [];
+    regionMain.forEach(id => uniqueIds.add(id));
+    regionSub.forEach(id => uniqueIds.add(id));
+  }
   if (guild.registeredBy) uniqueIds.add(guild.registeredBy);
   const memberCount = uniqueIds.size;
   const membersText = new TextDisplayBuilder()

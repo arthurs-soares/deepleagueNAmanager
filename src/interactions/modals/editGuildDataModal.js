@@ -1,6 +1,10 @@
 const { createErrorEmbed, createSuccessEmbed } = require('../../utils/embeds/embedBuilder');
 const Guild = require('../../models/guild/Guild');
-const { isGuildLeader } = require('../../utils/guilds/guildMemberManager');
+const {
+  isGuildLeader,
+  isGuildCoLeader,
+  isGuildManager
+} = require('../../utils/guilds/guildMemberManager');
 const { isGuildAdmin } = require('../../utils/core/permissions');
 const { auditAdminAction } = require('../../utils/misc/adminAudit');
 
@@ -28,8 +32,15 @@ async function handle(interaction) {
 
     const member = await interaction.guild.members.fetch(interaction.user.id);
     const admin = await isGuildAdmin(member, interaction.guild.id);
-    if (!admin && !isGuildLeader(guildDoc, interaction.user.id)) {
-      const embed = createErrorEmbed('Permission denied', 'Only the guild leader or a server administrator can edit the data.');
+    const isLeader = isGuildLeader(guildDoc, interaction.user.id);
+    const isCoLeader = isGuildCoLeader(guildDoc, interaction.user.id);
+    const isManager = isGuildManager(guildDoc, interaction.user.id);
+
+    if (!admin && !isLeader && !isCoLeader && !isManager) {
+      const embed = createErrorEmbed(
+        'Permission denied',
+        'Only the guild leader, co-leader, manager, or server administrator can edit the data.'
+      );
       const { MessageFlags } = require('discord.js');
       return interaction.reply({ components: [embed], flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral });
     }

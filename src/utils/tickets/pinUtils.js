@@ -8,7 +8,7 @@ const { ChannelType } = require('discord.js');
 async function clearPinnedMessages(channel) {
   try {
     if (!channel || channel.type !== ChannelType.GuildText) return;
-    const pinned = await channel.messages.fetchPinned().catch(() => null);
+    const pinned = await channel.messages.fetchPins().catch(() => null);
     if (!pinned) return;
     for (const [, msg] of pinned) {
       try { await msg.unpin().catch(() => {}); } catch (_) {}
