@@ -105,9 +105,18 @@ async function handleFixGuild(interaction) {
         f.leader ? 'leader' : (f.coLeader ? 'co-leader' : (
           f.member ? 'member' : null
         )),
-        f.main ? 'main' : null,
-        f.sub ? 'sub' : null,
+        f.main ? 'main (legacy)' : null,
+        f.sub ? 'sub (legacy)' : null,
       ].filter(Boolean);
+
+      // Add region-specific roster info
+      if (Array.isArray(f.regionRefs) && f.regionRefs.length > 0) {
+        for (const rr of f.regionRefs) {
+          if (rr.main) tags.push(`main (${rr.region})`);
+          if (rr.sub) tags.push(`sub (${rr.region})`);
+        }
+      }
+
       return `• ${r.name} — ${tags.join(', ')}`;
     });
 
