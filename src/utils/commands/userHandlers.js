@@ -36,7 +36,8 @@ async function handleProfile(interaction) {
     );
 
     await interaction.editReply({
-      components: [container]
+      components: [container],
+      flags: MessageFlags.IsComponentsV2
     });
   } catch (error) {
     LoggerService.error('Error in /user profile:', { error: error.message });
@@ -60,7 +61,9 @@ async function handleProfile(interaction) {
  */
 async function handleFixGuild(interaction) {
   try {
-    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+    await interaction.deferReply({
+      flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2
+    });
 
     const member = await interaction.guild.members.fetch(interaction.user.id);
     const allowed = await isModeratorOrHoster(member, interaction.guild.id);
@@ -70,7 +73,10 @@ async function handleFixGuild(interaction) {
         'Permission denied',
         'Only administrators, moderators or hosters can use this command.'
       );
-      return interaction.editReply({ components: [container] });
+      return interaction.editReply({
+        components: [container],
+        flags: MessageFlags.IsComponentsV2
+      });
     }
 
     const target = interaction.options.getUser('target', true);
@@ -87,7 +93,10 @@ async function handleFixGuild(interaction) {
         'No associations found',
         `User <@${target.id}> is not referenced in any guild.`
       );
-      return interaction.editReply({ components: [container] });
+      return interaction.editReply({
+        components: [container],
+        flags: MessageFlags.IsComponentsV2
+      });
     }
 
     const lines = refs.map(r => {
@@ -109,7 +118,10 @@ async function handleFixGuild(interaction) {
         '',
         'Run again with apply=true to remove from rosters.'
       ].join('\n'));
-      return interaction.editReply({ components: [container] });
+      return interaction.editReply({
+        components: [container],
+        flags: MessageFlags.IsComponentsV2
+      });
     }
 
     const res = await cleanupUserFromAllGuildAssociations(
@@ -145,7 +157,10 @@ async function handleFixGuild(interaction) {
           : 'Transition cooldown not modified.'
       ].join('\n')
     );
-    return interaction.editReply({ components: [container] });
+    return interaction.editReply({
+      components: [container],
+      flags: MessageFlags.IsComponentsV2
+    });
   } catch (error) {
     LoggerService.error('Error in /user fix-guild:', {
       error: error.message
@@ -157,12 +172,12 @@ async function handleFixGuild(interaction) {
     if (interaction.deferred || interaction.replied) {
       return interaction.followUp({
         components: [container],
-        flags: MessageFlags.Ephemeral
+        flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2
       });
     }
     return interaction.reply({
       components: [container],
-      flags: MessageFlags.Ephemeral
+      flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2
     });
   }
 }
@@ -174,7 +189,9 @@ async function handleFixGuild(interaction) {
  */
 async function handleResetRatings(interaction) {
   try {
-    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+    await interaction.deferReply({
+      flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2
+    });
 
     const member = await interaction.guild.members.fetch(interaction.user.id);
     const allowed = await isModeratorOrHoster(member, interaction.guild.id);
