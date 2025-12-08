@@ -1,4 +1,4 @@
-const { PermissionFlagsBits, MessageFlags } = require('discord.js');
+const { PermissionFlagsBits, MessageFlags, ActionRowBuilder, ButtonBuilder } = require('discord.js');
 const { buildWarCloseButtonRow } = require('../../../utils/tickets/closeButtons');
 const { replyEphemeral } = require('../../../utils/core/reply');
 const War = require('../../../models/war/War');
@@ -14,7 +14,15 @@ const LoggerService = require('../../../services/LoggerService');
  */
 async function handle(interaction) {
   try {
-    await interaction.deferUpdate();
+    const components = interaction.message.components.map(row => {
+      return ActionRowBuilder.from(row).setComponents(
+        row.components.map(component =>
+          ButtonBuilder.from(component).setDisabled(true)
+        )
+      );
+    });
+
+    await interaction.update({ components });
 
     const member = await interaction.guild.members.fetch(interaction.user.id);
     const rolesCfg = await getOrCreateRoleConfig(interaction.guild.id);
@@ -92,7 +100,7 @@ async function handle(interaction) {
     const originalMessage = interaction.message;
     try {
       await originalMessage.edit({ components: [] });
-    } catch (_) {}
+    } catch (_) { }
 
     // Post to channel
     try {
@@ -100,7 +108,7 @@ async function handle(interaction) {
         content: `🏆 Winner declared: **${winner.name}**`,
         components: [buildWarCloseButtonRow(war._id)]
       });
-    } catch (_) {}
+    } catch (_) { }
 
     // War finished log
     try {
@@ -140,7 +148,7 @@ async function handle(interaction) {
         `Winner: ${winner.name}\n` +
         `Participants: ${guildA?.name} vs ${guildB?.name}`
       );
-    } catch (_) {}
+    } catch (_) { }
 
     return interaction.followUp({
       content: '✅ Result saved successfully.',

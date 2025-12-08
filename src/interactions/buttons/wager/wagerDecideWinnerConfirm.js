@@ -1,4 +1,4 @@
-const { PermissionFlagsBits, MessageFlags } = require('discord.js');
+const { PermissionFlagsBits, MessageFlags, ActionRowBuilder, ButtonBuilder } = require('discord.js');
 const WagerTicket = require('../../../models/wager/WagerTicket');
 const { getOrCreateRoleConfig } = require('../../../utils/misc/roleConfig');
 const WagerService = require('../../../services/WagerService');
@@ -12,7 +12,15 @@ const LoggerService = require('../../../services/LoggerService');
  */
 async function handle(interaction) {
   try {
-    await interaction.deferUpdate();
+    const components = interaction.message.components.map(row => {
+      return ActionRowBuilder.from(row).setComponents(
+        row.components.map(component =>
+          ButtonBuilder.from(component).setDisabled(true)
+        )
+      );
+    });
+
+    await interaction.update({ components });
 
     const parts = interaction.customId.split(':');
     const [, , , ticketId, winnerKey] = parts;
