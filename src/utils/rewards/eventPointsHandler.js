@@ -11,6 +11,7 @@ const {
   upsertEventPointsLeaderboard
 } = require('../leaderboard/eventPointsLeaderboard');
 const LoggerService = require('../../services/LoggerService');
+const { isGuildAdmin } = require('../core/permissions');
 
 /**
  * Add event points to a user
@@ -18,6 +19,13 @@ const LoggerService = require('../../services/LoggerService');
  */
 async function handleAddPoints(interaction) {
   await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+
+  const allowed = await isGuildAdmin(interaction.member, interaction.guild.id);
+  if (!allowed) {
+    return interaction.editReply({
+      content: '❌ You need Administrator or Moderator role.'
+    });
+  }
 
   try {
     const targetUser = interaction.options.getUser('user');
@@ -68,6 +76,13 @@ async function handleAddPoints(interaction) {
  */
 async function handleRemovePoints(interaction) {
   await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+
+  const allowed = await isGuildAdmin(interaction.member, interaction.guild.id);
+  if (!allowed) {
+    return interaction.editReply({
+      content: '❌ You need Administrator or Moderator role.'
+    });
+  }
 
   try {
     const targetUser = interaction.options.getUser('user');

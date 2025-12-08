@@ -12,7 +12,7 @@ module.exports = {
   data: new SlashCommandBuilder()
     .setName('event')
     .setDescription('Manage event points')
-    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
     .addSubcommandGroup(group =>
       group
         .setName('point')
