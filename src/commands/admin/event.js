@@ -7,12 +7,12 @@ const {
   handleAddPoints,
   handleRemovePoints
 } = require('../../utils/rewards/eventPointsHandler');
+const { isGuildAdmin } = require('../../utils/core/permissions');
 
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('event')
     .setDescription('Manage event points')
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
     .addSubcommandGroup(group =>
       group
         .setName('point')
@@ -56,6 +56,17 @@ module.exports = {
   cooldown: 3,
 
   async execute(interaction) {
+    // Check permissions: Manage Guild OR Configured Moderator
+    const hasPerms = interaction.member.permissions.has(PermissionFlagsBits.ManageGuild) ||
+      await isGuildAdmin(interaction.member, interaction.guild.id);
+
+    if (!hasPerms) {
+      return interaction.reply({
+        content: '❌ You do not have permission to use this command.',
+        flags: MessageFlags.Ephemeral
+      });
+    }
+
     const group = interaction.options.getSubcommandGroup();
     const subcommand = interaction.options.getSubcommand();
 
