@@ -150,7 +150,9 @@ async function safeInteractionReply(interaction, options, ephemeral = true) {
     }
 
     const { MessageFlags } = require('discord.js');
-    const payload = ephemeral ? { ...options, flags: MessageFlags.Ephemeral } : options;
+    const existingFlags = options.flags || 0;
+    const finalFlags = ephemeral ? (existingFlags | MessageFlags.Ephemeral) : existingFlags;
+    const payload = { ...options, flags: finalFlags };
 
     if (interaction.deferred && !interaction.replied) {
       await interaction.editReply(payload);

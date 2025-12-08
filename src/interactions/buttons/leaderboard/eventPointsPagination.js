@@ -1,7 +1,7 @@
 const { MessageFlags } = require('discord.js');
 const {
   buildEventPointsLeaderboardEmbed
-} = require('../../utils/leaderboard/eventPointsLeaderboard');
+} = require('../../../utils/leaderboard/eventPointsLeaderboard');
 
 /**
  * Handle event points leaderboard pagination buttons

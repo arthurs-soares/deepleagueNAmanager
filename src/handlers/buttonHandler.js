@@ -1,4 +1,5 @@
 const { createErrorEmbed } = require('../utils/embeds/embedBuilder');
+const { MessageFlags } = require('discord.js');
 const { resolveButtonHandler } = require('../utils/routing/buttonRoutes');
 const { safeInteractionReply, isInteractionExpired } = require('../utils/core/interactionUtils');
 const LoggerService = require('../services/LoggerService');
@@ -45,7 +46,10 @@ async function handleButtonInteraction(interaction) {
       'An error occurred while processing this button.'
     );
     // Use safe reply to avoid double response errors
-    await safeInteractionReply(interaction, { components: [embed] }, true);
+    await safeInteractionReply(interaction, {
+      components: [embed],
+      flags: MessageFlags.IsComponentsV2
+    }, true);
   }
 }
 
