@@ -57,14 +57,9 @@ async function handle(interaction) {
       warRegion = regionsA[0] || null;
     }
 
-    // Validate guildA is active in the selected war region
-    const guildAInRegion = guildA.regions?.some(
-      r => r.region === warRegion && r.status === 'active'
-    );
-
-    if (!warRegion || !guildAInRegion) {
+    if (!warRegion) {
       return interaction.editReply({
-        content: '❌ Your guild must be active in the selected region.'
+        content: '❌ Invalid region selected.'
       });
     }
 
