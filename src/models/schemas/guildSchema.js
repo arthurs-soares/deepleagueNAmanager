@@ -164,4 +164,23 @@ const guildSchema = new mongoose.Schema({
   timestamps: true // Automatically adds createdAt and updatedAt
 });
 
+// Virtuals for backward compatibility and stat aggregation from regions
+guildSchema.virtual('wins').get(function () {
+  if (this.regions && this.regions.length > 0) {
+    return this.regions.reduce((sum, region) => sum + (region.wins || 0), 0);
+  }
+  return 0;
+});
+
+guildSchema.virtual('losses').get(function () {
+  if (this.regions && this.regions.length > 0) {
+    return this.regions.reduce((sum, region) => sum + (region.losses || 0), 0);
+  }
+  return 0;
+});
+
+// Ensure virtuals are included when converting to JSON/Object
+guildSchema.set('toJSON', { virtuals: true });
+guildSchema.set('toObject', { virtuals: true });
+
 module.exports = { guildSchema, memberSchema, regionStatsSchema };
