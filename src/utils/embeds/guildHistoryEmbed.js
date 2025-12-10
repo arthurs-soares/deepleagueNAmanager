@@ -13,7 +13,7 @@ async function fetchGuildWars(discordGuildId, guildId, limit = 10) {
     discordGuildId,
     $or: [{ guildAId: guildId }, { guildBId: guildId }]
   })
-    .sort({ createdAt: -1 })
+    .sort({ scheduledAt: -1 })
     .limit(limit)
     .lean();
   return wars;
@@ -40,12 +40,13 @@ function buildGuildHistoryEmbed(guild, wars, idToName = {}) {
 
   // Header
   const titleText = new TextDisplayBuilder()
-    .setContent(`# ${emojis.history} War History — ${guild?.name || '—'}`);
+    .setContent(`# ${emojis.history || '📜'} War History — ${guild?.name || '—'}`);
+
   const descText = new TextDisplayBuilder()
     .setContent(
       safeWars.length
-        ? `${emojis.info} Recent matches:`
-        : `${emojis.warning} No matches recorded.`
+        ? `${emojis.info || 'ℹ️'} Recent matches (Last ${safeWars.length}):`
+        : `${emojis.warning || '⚠️'} No matches recorded.`
     );
 
   container.addTextDisplayComponents(titleText, descText);
@@ -54,34 +55,50 @@ function buildGuildHistoryEmbed(guild, wars, idToName = {}) {
     container.addSeparatorComponents(new SeparatorBuilder());
 
     safeWars.slice(0, 10).forEach((w) => {
-      const when = w.scheduledAt
-        ? `<t:${Math.floor(new Date(w.scheduledAt).getTime() / 1000)}:f>`
-        : '—';
-      const status = w.status || 'open';
-      let result = '—';
+      // Determine Opponent
+      const opponentId = String(w.guildAId) === String(guild?._id)
+        ? String(w.guildBId)
+        : String(w.guildAId);
+      const opponentName = (opponentId && idToName[String(opponentId)]) || 'Unknown guild';
+
+      // Status Logic
+      let statusLabel = 'Unknown';
+      let icon = '❓';
+
       if (w.status === 'finalizada') {
-        result =
-          String(w.winnerGuildId) === String(guild?._id)
-            ? 'Victory 🟢'
-            : 'Defeat 🔴';
+        const isWinner = String(w.winnerGuildId) === String(guild?._id);
+        statusLabel = isWinner ? 'Victory' : 'Defeat';
+        icon = isWinner ? '🏆' : '💀';
+      } else if (w.status === 'dodge') {
+        const isDodger = String(w.dodgedByGuildId) === String(guild?._id);
+        statusLabel = 'Dodged';
+        icon = isDodger ? '🏃' : '💨'; // Runner if they dodged, Dash if opponent dodged (or just generic)
+      } else if (w.status === 'cancelada') {
+        statusLabel = 'Cancelled';
+        icon = '🚫';
+      } else {
+        statusLabel = 'Scheduled';
+        icon = '⏳';
       }
-      const opponentId =
-        String(w.guildAId) === String(guild?._id)
-          ? String(w.guildBId)
-          : String(w.guildAId);
-      const opponentName =
-        (opponentId && idToName[String(opponentId)]) || 'Unknown guild';
 
-      const warText = new TextDisplayBuilder()
-        .setContent(
-          `**${result} • vs ${opponentName} • ${status}**\n` +
-          `${emojis.schedule} When: ${when}\n` +
-          `${emojis.channel} Channel: ` +
-          (w.channelId
-            ? `<#${w.channelId}>`
-            : (w.threadId ? `<#${w.threadId}>` : '—'))
-        );
+      // Time
+      const timestamp = w.scheduledAt ? Math.floor(new Date(w.scheduledAt).getTime() / 1000) : null;
+      const timeStr = timestamp ? `<t:${timestamp}:d> (<t:${timestamp}:R>)` : '—';
 
+      // Region
+      const regionStr = w.region ? ` • 🌍 ${w.region}` : '';
+
+      // Channel
+      const channelLink = w.channelId
+        ? `<#${w.channelId}>`
+        : (w.threadId ? `<#${w.threadId}>` : '—');
+
+      // Format content
+      const content =
+        `### ${icon} ${statusLabel} vs ${opponentName}${regionStr}\n` +
+        `📅 ${timeStr} • ${emojis.channel || '#️⃣'} ${channelLink}`;
+
+      const warText = new TextDisplayBuilder().setContent(content);
       container.addTextDisplayComponents(warText);
     });
   }
