@@ -33,84 +33,109 @@ async function handle(interaction) {
       });
     }
 
-    const guildDoc = await Guild.findById(guildId);
-    if (!guildDoc) {
-      const embed = createErrorEmbed(
-        'Guild not found',
-        'This invitation refers to a guild that no longer exists.'
-      );
-      return interaction.editReply({
-        components: [embed],
-        flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral
-      });
-    }
-
     const userId = interaction.user.id;
-    const members = Array.isArray(guildDoc.members)
-      ? guildDoc.members
-      : [];
 
-    // Check if already a co-leader
-    const existingCoLeader = members.find(
-      m => m.userId === userId && m.role === 'vice-lider'
+    // Step 1: Try to promote existing member if they exist and no co-leader exists
+    // Condition: No member has role 'vice-lider' AND target user is in members array
+    let updatedGuild = await Guild.findOneAndUpdate(
+      {
+        _id: guildId,
+        "members.role": { $ne: "vice-lider" },
+        "members.userId": userId
+      },
+      {
+        $set: { "members.$.role": "vice-lider" }
+      },
+      { new: true }
     );
-    if (existingCoLeader) {
-      const embed = createErrorEmbed(
-        'Already co-leader',
-        'You are already the co-leader of this guild.'
-      );
-      return interaction.editReply({
-        components: [embed],
-        flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral
-      });
-    }
 
-    // Check co-leader limit (only 1 allowed)
-    const coCount = members.filter(m => m.role === 'vice-lider').length;
-    if (coCount >= 1) {
-      const embed = createErrorEmbed(
-        'Limit reached',
-        'This guild already has a co-leader.'
-      );
-      return interaction.editReply({
-        components: [embed],
-        flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral
-      });
-    }
-
-    // Check if user is the leader
-    const isLeader = members.some(
-      m => m.userId === userId && m.role === 'lider'
-    );
-    if (isLeader) {
-      const embed = createErrorEmbed(
-        'Invalid',
-        'The guild leader cannot become co-leader.'
-      );
-      return interaction.editReply({
-        components: [embed],
-        flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral
-      });
-    }
-
-    // Add as member if not already present
-    const existingMember = members.find(m => m.userId === userId);
-    if (!existingMember) {
-      guildDoc.members = [
-        ...members,
+    // Step 2: If not found (maybe user not in members), try to add as new member
+    // Condition: No member has role 'vice-lider' AND target user is NOT in members array
+    if (!updatedGuild) {
+      updatedGuild = await Guild.findOneAndUpdate(
         {
-          userId,
-          username: interaction.user.username,
-          role: 'vice-lider',
-          joinedAt: new Date()
-        }
-      ];
-    } else {
-      // Promote existing member to co-leader
-      existingMember.role = 'vice-lider';
+          _id: guildId,
+          "members.role": { $ne: "vice-lider" },
+          "members.userId": { $ne: userId }
+        },
+        {
+          $push: {
+            members: {
+              userId,
+              username: interaction.user.username,
+              role: 'vice-lider',
+              joinedAt: new Date()
+            }
+          }
+        },
+        { new: true }
+      );
     }
 
-    await guildDoc.save();
+    if (!updatedGuild) {
+      // Diagnose why it failed
+      const checkGuild = await Guild.findById(guildId);
+      if (!checkGuild) {
+        const embed = createErrorEmbed(
+          'Guild not found',
+          'This invitation refers to a guild that no longer exists.'
+        );
+        return interaction.editReply({
+          components: [embed],
+          flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral
+        });
+      }
+
+      const members = checkGuild.members || [];
+      const hasCoLeader = members.some(m => m.role === 'vice-lider');
+      const isLeader = members.some(m => m.userId === userId && m.role === 'lider');
+      const isAlreadyCo = members.some(m => m.userId === userId && m.role === 'vice-lider');
+
+      if (isLeader) {
+        const embed = createErrorEmbed(
+          'Invalid',
+          'The guild leader cannot become co-leader.'
+        );
+        return interaction.editReply({
+          components: [embed],
+          flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral
+        });
+      }
+
+      if (isAlreadyCo) {
+        const embed = createErrorEmbed(
+          'Already co-leader',
+          'You are already the co-leader of this guild.'
+        );
+        return interaction.editReply({
+          components: [embed],
+          flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral
+        });
+      }
+
+      if (hasCoLeader) {
+        const embed = createErrorEmbed(
+          'Limit reached',
+          'This guild already has a co-leader.'
+        );
+        return interaction.editReply({
+          components: [embed],
+          flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral
+        });
+      }
+
+      // Fallback
+      const embed = createErrorEmbed(
+        'Error',
+        'Could not accept invitation due to a state conflict. Please try again.'
+      );
+      return interaction.editReply({
+        components: [embed],
+        flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral
+      });
+    }
+
+    const guildDoc = updatedGuild;
 
     // Try to assign the co-leader role if configured
     await assignCoLeaderRole(interaction, guildDoc, userId, inviterId);

@@ -34,76 +34,112 @@ async function handle(interaction) {
             });
         }
 
-        const guildDoc = await Guild.findById(guildId);
-        if (!guildDoc) {
-            const embed = createErrorEmbed(
-                'Guild not found',
-                'This invitation refers to a guild that no longer exists.'
-            );
-            return interaction.editReply({
-                components: [embed],
-                flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral
-            });
-        }
-
         const userId = interaction.user.id;
-        const members = Array.isArray(guildDoc.members) ? [...guildDoc.members] : [];
 
-        // Check if user is already co-leader
-        const existingCoLeader = members.find(
-            m => m.userId === userId && m.role === 'vice-lider'
+        // Define safety condition: Either no co-leader exists, OR the existing one matches oldCoLeaderId
+        const safetyCondition = [];
+        // Condition 1: No co-leader exists (safe to take over)
+        safetyCondition.push({ "members": { $not: { $elemMatch: { role: 'vice-lider' } } } });
+
+        // Condition 2: Current co-leader is the one we are replacing
+        if (oldCoLeaderId) {
+            safetyCondition.push({ "members": { $elemMatch: { role: 'vice-lider', userId: oldCoLeaderId } } });
+        }
+
+        const baseQuery = {
+            _id: guildId,
+            $or: safetyCondition
+        };
+
+        // Step 1: Promote existing member
+        // Demote any existing co-leader (who isn't us), Promote us.
+        let updatedGuild = await Guild.findOneAndUpdate(
+            {
+                ...baseQuery,
+                "members.userId": userId
+            },
+            {
+                $set: {
+                    "members.$[old].role": "membro",
+                    "members.$[target].role": "vice-lider"
+                }
+            },
+            {
+                new: true,
+                arrayFilters: [
+                    { "old.role": "vice-lider", "old.userId": { $ne: userId } },
+                    { "target.userId": userId }
+                ]
+            }
         );
-        if (existingCoLeader) {
-            const embed = createErrorEmbed(
-                'Already co-leader',
-                'You are already the co-leader of this guild.'
+
+        // Step 2: Add new member
+        if (!updatedGuild) {
+            updatedGuild = await Guild.findOneAndUpdate(
+                {
+                    ...baseQuery,
+                    "members.userId": { $ne: userId }
+                },
+                {
+                    $set: { "members.$[old].role": "membro" },
+                    $push: {
+                        members: {
+                            userId,
+                            username: interaction.user.username,
+                            role: 'vice-lider',
+                            joinedAt: new Date()
+                        }
+                    }
+                },
+                {
+                    new: true,
+                    arrayFilters: [
+                        { "old.role": "vice-lider" }
+                    ]
+                }
             );
-            return interaction.editReply({
-                components: [embed],
-                flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral
-            });
         }
 
-        // Identify the CURRENT co-leader in DB
-        const currentCo = members.find(m => m.role === 'vice-lider');
+        if (!updatedGuild) {
+            // Diagnose failure
+            const checkGuild = await Guild.findById(guildId);
+            if (!checkGuild) {
+                const embed = createErrorEmbed('Guild not found', 'Guild no longer exists.');
+                return interaction.editReply({ components: [embed], flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral });
+            }
 
-        // Verify consistency: 
-        // If there is a co-leader, is it the one we expect?
-        // If not, maybe they changed already. We proceed anyway but log it.
-        if (currentCo && oldCoLeaderId && currentCo.userId !== oldCoLeaderId) {
-            // Warning: The co-leader has changed since the invite was sent.
-            // However, the invite authorizes THIS user to take over. 
-            // We should arguably proceed and displace whoever is there, 
-            // OR fail if it's not the expected person. 
-            // To avoid race conditions, let's fail if the slot is occupied by someone else.
-            const embed = createErrorEmbed(
-                'Slot changed',
-                'The co-leader position has changed since this invite was sent.'
-            );
-            return interaction.editReply({ components: [embed], flags: MessageFlags.IsComponentsV2 });
+            const members = checkGuild.members || [];
+            const currentCo = members.find(m => m.role === 'vice-lider');
+
+            if (members.some(m => m.userId === userId && m.role === 'vice-lider')) {
+                const embed = createErrorEmbed('Already co-leader', 'You are already the co-leader.');
+                return interaction.editReply({ components: [embed], flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral });
+            }
+
+            // If current co-leader is not the one we expected
+            if (currentCo && oldCoLeaderId && currentCo.userId !== oldCoLeaderId) {
+                const embed = createErrorEmbed(
+                    'Slot changed',
+                    'The co-leader position has changed since this invite was sent.'
+                );
+                return interaction.editReply({ components: [embed], flags: MessageFlags.IsComponentsV2 });
+            }
+
+            // If current co-leader exists but we expected None (oldCoLeaderId is null)
+            if (currentCo && !oldCoLeaderId) {
+                const embed = createErrorEmbed('Limit reached', 'A co-leader was appointed before you accepted.');
+                return interaction.editReply({ components: [embed], flags: MessageFlags.IsComponentsV2 });
+            }
+
+            const embed = createErrorEmbed('Error', 'Could not accept invitation due to a state conflict.');
+            return interaction.editReply({ components: [embed], flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral });
         }
 
-        // Add user as member if not present or get existing
-        let targetMember = members.find(m => m.userId === userId);
-        if (!targetMember) {
-            targetMember = {
-                userId,
-                username: interaction.user.username,
-                role: 'vice-lider',
-                joinedAt: new Date()
-            };
-            members.push(targetMember);
-        } else {
-            targetMember.role = 'vice-lider';
-        }
+        const guildDoc = updatedGuild;
 
-        // Demote current co-leader if exists
-        if (currentCo && currentCo.userId !== userId) {
-            currentCo.role = 'membro';
-        }
-
-        guildDoc.members = members;
-        await guildDoc.save();
+        // Identify who was demoted for notifications (best guess based on oldCoLeaderId or current state if we had it)
+        // Since we did an atomic update, we know if there WAS an oldCoLeaderId, they were demoted.
+        const demotedId = oldCoLeaderId;
 
         // Handle Discord Roles
         const cfg = await getOrCreateRoleConfig(guildDoc.discordGuildId);

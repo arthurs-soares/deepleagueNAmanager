@@ -32,11 +32,63 @@ async function handle(interaction) {
       });
     }
 
-    const guildDoc = await Guild.findById(guildId);
-    if (!guildDoc) {
+    // Atomic update to add manager while respecting the limit of 2
+    // We use $expr to check array size and ensure user isn't already there
+    const updatedGuild = await Guild.findOneAndUpdate(
+      {
+        _id: guildId,
+        $expr: { $lt: [{ $size: "$managers" }, 2] },
+        managers: { $ne: userId }
+      },
+      {
+        $push: { managers: userId }
+      },
+      { new: true }
+    );
+
+    if (!updatedGuild) {
+      // If update failed, determine why for the error message
+      const checkGuild = await Guild.findById(guildId);
+
+      if (!checkGuild) {
+        const embed = createErrorEmbed(
+          'Guild not found',
+          'This invitation refers to a guild that no longer exists.'
+        );
+        return interaction.editReply({
+          components: [embed],
+          flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral
+        });
+      }
+
+      const managers = checkGuild.managers || [];
+
+      if (managers.includes(userId)) {
+        const embed = createErrorEmbed(
+          'Already a manager',
+          'You are already a manager of this guild.'
+        );
+        return interaction.editReply({
+          components: [embed],
+          flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral
+        });
+      }
+
+      if (managers.length >= 2) {
+        const embed = createErrorEmbed(
+          'Limit reached',
+          'This guild already has the maximum number of managers (2).'
+        );
+        return interaction.editReply({
+          components: [embed],
+          flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral
+        });
+      }
+
+      // Fallback
       const embed = createErrorEmbed(
-        'Guild not found',
-        'This invitation refers to a guild that no longer exists.'
+        'Error',
+        'Could not accept invitation due to a state conflict. Please try again.'
       );
       return interaction.editReply({
         components: [embed],
@@ -44,36 +96,7 @@ async function handle(interaction) {
       });
     }
 
-    const userId = interaction.user.id;
-    const managers = Array.isArray(guildDoc.managers) ? guildDoc.managers : [];
-
-    // Check if already a manager
-    if (managers.includes(userId)) {
-      const embed = createErrorEmbed(
-        'Already a manager',
-        'You are already a manager of this guild.'
-      );
-      return interaction.editReply({
-        components: [embed],
-        flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral
-      });
-    }
-
-    // Check manager limit
-    if (managers.length >= 2) {
-      const embed = createErrorEmbed(
-        'Limit reached',
-        'This guild already has the maximum number of managers (2).'
-      );
-      return interaction.editReply({
-        components: [embed],
-        flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral
-      });
-    }
-
-    // Add as manager
-    guildDoc.managers = [...managers, userId];
-    await guildDoc.save();
+    const guildDoc = updatedGuild;
 
     // Try to assign the managers role if configured
     const cfg = await getOrCreateRoleConfig(guildDoc.discordGuildId);
