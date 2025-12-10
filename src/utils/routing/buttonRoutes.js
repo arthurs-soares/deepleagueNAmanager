@@ -55,6 +55,7 @@ function resolveButtonHandler(customId) {
   if (customId === 'support:call') return '../interactions/buttons/support/supportCall';
 
   if (customId.startsWith('viewGuild:history:')) return '../interactions/buttons/guild/viewGuildHistory';
+  if (customId.startsWith('viewGuild:rosterHistory:')) return '../interactions/buttons/guild/viewRosterHistory';
   if (customId.startsWith('viewGuild:back:')) return '../interactions/buttons/guild/viewGuildBack';
 
   // Roster invite flow

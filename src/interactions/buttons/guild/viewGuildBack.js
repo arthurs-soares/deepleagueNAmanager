@@ -21,7 +21,8 @@ async function handle(interaction) {
 
     // Reconstrói botões (History)
     const row = new ActionRowBuilder().addComponents(
-      new ButtonBuilder().setCustomId(`viewGuild:history:${guildId}`).setStyle(ButtonStyle.Primary).setLabel('📊 History')
+      new ButtonBuilder().setCustomId(`viewGuild:history:${guildId}`).setStyle(ButtonStyle.Primary).setLabel('📊 History'),
+      new ButtonBuilder().setCustomId(`viewGuild:rosterHistory:${guildId}`).setStyle(ButtonStyle.Secondary).setLabel('📋 Roster History')
     );
 
     // Always use Components v2

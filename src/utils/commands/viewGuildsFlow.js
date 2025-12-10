@@ -17,7 +17,11 @@ async function handleViewDetails(interaction, requestedName) {
     new ButtonBuilder()
       .setCustomId(`viewGuild:history:${target._id}`)
       .setStyle(ButtonStyle.Primary)
-      .setLabel('📊 History')
+      .setLabel('📊 History'),
+    new ButtonBuilder()
+      .setCustomId(`viewGuild:rosterHistory:${target._id}`)
+      .setStyle(ButtonStyle.Secondary)
+      .setLabel('📋 Roster History')
   );
   return interaction.editReply({ components: [container, historyButton], flags: MessageFlags.IsComponentsV2 });
 }
