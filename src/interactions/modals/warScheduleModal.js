@@ -26,8 +26,19 @@ async function handle(interaction) {
     const region = parts[4]?.replace(/_/g, ' ') || null;
     const day = interaction.fields.getTextInputValue('day');
     const month = interaction.fields.getTextInputValue('month');
-    const year = interaction.fields.getTextInputValue('year');
     const time = interaction.fields.getTextInputValue('time');
+
+    // Smart year selection: if date is in the past (based on month), assume next year
+    const now = new Date();
+    let year = now.getFullYear();
+    const currentMonth = now.getMonth() + 1;
+    const inputMonth = parseInt(month, 10);
+
+    // If input month is earlier than current month, assume user means next year
+    // Example: Current is Dec (12), input is Jan (1) -> 2026
+    if (!isNaN(inputMonth) && inputMonth < currentMonth) {
+      year += 1;
+    }
 
     // Validate date/time input (must be in the future)
     const dateTimeValidation = validateDateParts(day, month, year, time);

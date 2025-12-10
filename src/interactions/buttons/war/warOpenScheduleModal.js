@@ -35,14 +35,7 @@ async function handle(interaction) {
       .setMinLength(1)
       .setMaxLength(2);
 
-    const yearInput = new TextInputBuilder()
-      .setCustomId('year')
-      .setLabel('Year (e.g., 2025)')
-      .setStyle(TextInputStyle.Short)
-      .setRequired(true)
-      .setPlaceholder('YYYY')
-      .setMinLength(4)
-      .setMaxLength(4);
+
 
     const timeInput = new TextInputBuilder()
       .setCustomId('time')
@@ -56,7 +49,6 @@ async function handle(interaction) {
     modal.addComponents(
       new ActionRowBuilder().addComponents(dayInput),
       new ActionRowBuilder().addComponents(monthInput),
-      new ActionRowBuilder().addComponents(yearInput),
       new ActionRowBuilder().addComponents(timeInput),
     );
 
