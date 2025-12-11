@@ -17,7 +17,7 @@ const LoggerService = require('../../../services/LoggerService');
  */
 async function handle(interaction) {
   try {
-    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+    await interaction.deferReply();
 
     const [, , ticketId] = interaction.customId.split(':');
     if (!ticketId) {
