@@ -10,8 +10,11 @@ const LoggerService = require('../../services/LoggerService');
 // In-memory rate limit to avoid spamming reminders per channel
 const lastReminderAt = new Collection(); // key: channelId, value: Date
 
-// 1 day in milliseconds
+// 1 day in milliseconds (for unaccepted tickets)
 const ONE_DAY_MS = 1 * 24 * 60 * 60 * 1000;
+
+// 3 days in milliseconds (for accepted tickets without wager completion)
+const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000;
 
 /**
  * Determine if a channel is inactive based on last message timestamp.
@@ -144,16 +147,32 @@ function isTicketExpired(ticket) {
 }
 
 /**
- * Apply automatic dodge to the opponent (challenged user) for an expired wager ticket
+ * Check if an ACCEPTED wager ticket has been open for more than 3 days without completion
+ * This means the wager was accepted but the game never happened
+ * @param {Object} ticket - WagerTicket document
+ * @returns {boolean}
+ */
+function isAcceptedTicketExpired(ticket) {
+  if (!ticket || !ticket.acceptedAt) return false;
+  // Only check tickets that were accepted but not closed
+  if (ticket.status !== 'open') return false;
+
+  const acceptedAt = new Date(ticket.acceptedAt).getTime();
+  return Date.now() - acceptedAt >= THREE_DAYS_MS;
+}
+
+/**
+ * Apply automatic dodge for an accepted ticket that expired (3 days without game happening)
+ * In this case, both users are at fault, but we apply dodge to the opponent (challenged user)
  * @param {import('discord.js').Client} client
  * @param {Object} ticket - WagerTicket document
  * @param {import('discord.js').Guild} guild - Discord guild
  */
-async function applyAutoDodge(client, ticket, guild) {
+async function applyAutoDodgeForAcceptedTicket(client, ticket, guild) {
   const channel = guild.channels.cache.get(ticket.channelId);
 
   // The opponent (challenged user) is the one who gets the auto-dodge
-  // (Assuming they didn't respond to the challenge)
+  // since they accepted but the game never happened
   const dodgerUserId = ticket.opponentUserId;
   const opponentId = ticket.initiatorUserId;
 
@@ -178,7 +197,7 @@ async function applyAutoDodge(client, ticket, guild) {
     try {
       // Send auto-dodge notification message
       await channel.send({
-        content: `⏰ **Auto-Dodge Applied**\n\nThis wager ticket has been open for over 24 hours without response.\n\n<@${dodgerUserId}> has been automatically marked as dodging against <@${opponentId}>.\n\nGenerating transcript and closing ticket...`
+        content: `⏰ **Auto-Dodge Applied (3 Days Timeout)**\n\nThis wager was accepted but the game never happened within 3 days.\n\n<@${dodgerUserId}> has been automatically marked as dodging against <@${opponentId}>.\n\nGenerating transcript and closing ticket...`
       });
 
       // Build and send the dodge embed
@@ -196,11 +215,11 @@ async function applyAutoDodge(client, ticket, guild) {
         await sendTranscriptToLogs(
           guild,
           channel,
-          `Wager Ticket ${ticket._id} auto-closed (24 hours no-response timeout) - Dodge applied to <@${dodgerUserId}>`,
+          `Wager Ticket ${ticket._id} auto-closed (3 days after acceptance without game) - Dodge applied to <@${dodgerUserId}>`,
           ticket
         );
       } catch (err) {
-        LoggerService.warn('Failed to send auto-dodge transcript:', { error: err?.message });
+        LoggerService.warn('Failed to send auto-dodge transcript (accepted ticket):', { error: err?.message });
       }
 
       // Send log to wager dodge channel if configured
@@ -214,22 +233,80 @@ async function applyAutoDodge(client, ticket, guild) {
       // Delete the channel after a short delay
       setTimeout(async () => {
         try {
-          await channel.delete('Wager ticket auto-closed due to 24 hours inactivity (auto-dodge)');
+          await channel.delete('Wager ticket auto-closed due to 3 days after acceptance without game (auto-dodge)');
         } catch (err) {
-          console.warn('Failed to delete expired wager ticket channel:', err?.message);
+          console.warn('Failed to delete expired accepted wager ticket channel:', err?.message);
         }
       }, 10000); // 10 seconds delay
 
     } catch (err) {
-      console.error('Error sending auto-dodge notification:', err);
+      console.error('Error sending auto-dodge notification (accepted ticket):', err);
     }
   }
 
-  LoggerService.info(`[Auto-Dodge] Applied to wager ticket ${ticket._id}`, { dodgerUserId });
+  LoggerService.info(`[Auto-Dodge] Applied to ACCEPTED wager ticket ${ticket._id} (3 days timeout)`, { dodgerUserId });
 }
 
 /**
- * Scan for wager tickets that are open for more than 1 day and apply auto-dodge
+ * Auto-close an unaccepted wager ticket after 1 day (NO dodge applied)
+ * The ticket is simply closed since the opponent never responded
+ * @param {import('discord.js').Client} client
+ * @param {Object} ticket - WagerTicket document
+ * @param {import('discord.js').Guild} guild - Discord guild
+ */
+async function autoCloseUnacceptedTicket(client, ticket, guild) {
+  const channel = guild.channels.cache.get(ticket.channelId);
+
+  const initiatorId = ticket.initiatorUserId;
+  const opponentId = ticket.opponentUserId;
+
+  // Mark ticket as closed (NOT dodge - just closed due to no response)
+  ticket.status = 'closed';
+  ticket.closedAt = new Date();
+  ticket.closedByUserId = client.user.id; // Bot is the closer
+  await ticket.save();
+
+  // Send notification in the ticket channel (if it exists)
+  if (channel && channel.type === ChannelType.GuildText) {
+    try {
+      // Send auto-close notification message
+      await channel.send({
+        content: `⏰ **Ticket Auto-Closed**\n\nThis wager ticket has been open for over 24 hours without being accepted.\n\nThe ticket between <@${initiatorId}> and <@${opponentId}> has been automatically closed.\n\nGenerating transcript and closing ticket...`
+      });
+
+      // Send transcript to logs
+      try {
+        await sendTranscriptToLogs(
+          guild,
+          channel,
+          `Wager Ticket ${ticket._id} auto-closed (24 hours without acceptance)`,
+          ticket
+        );
+      } catch (err) {
+        LoggerService.warn('Failed to send auto-close transcript:', { error: err?.message });
+      }
+
+      // Delete the channel after a short delay
+      setTimeout(async () => {
+        try {
+          await channel.delete('Wager ticket auto-closed due to 24 hours without acceptance');
+        } catch (err) {
+          console.warn('Failed to delete unaccepted wager ticket channel:', err?.message);
+        }
+      }, 10000); // 10 seconds delay
+
+    } catch (err) {
+      console.error('Error sending auto-close notification:', err);
+    }
+  }
+
+  LoggerService.info(`[Auto-Close] Unaccepted wager ticket ${ticket._id} closed after 1 day`);
+}
+
+/**
+ * Scan for wager tickets that are:
+ * 1. Open for more than 1 day and NOT accepted (auto-close without dodge)
+ * 2. Accepted but open for more than 3 days without game happening (apply auto-dodge)
  * @param {import('discord.js').Client} client
  */
 async function scanExpiredWagerTickets(client) {
@@ -237,31 +314,51 @@ async function scanExpiredWagerTickets(client) {
 
   for (const [, guild] of guilds) {
     try {
-      // Find open wager tickets that are NOT accepted yet
-      const openWagers = await WagerTicket.find({
+      // 1. Find open wager tickets that are NOT accepted yet (1 day timeout - just close, no dodge)
+      const unacceptedWagers = await WagerTicket.find({
         discordGuildId: guild.id,
         channelId: { $ne: null },
         status: 'open',
         acceptedAt: null // ensuring we only catch unaccepted wagers
       }).catch(() => []);
 
-      for (const ticket of openWagers) {
+      for (const ticket of unacceptedWagers) {
         if (isTicketExpired(ticket)) {
           try {
-            await applyAutoDodge(client, ticket, guild);
+            await autoCloseUnacceptedTicket(client, ticket, guild);
           } catch (err) {
-            LoggerService.error(`[Auto-Dodge] Error processing ticket ${ticket._id}:`, err);
+            LoggerService.error(`[Auto-Close] Error processing unaccepted ticket ${ticket._id}:`, err);
+          }
+        }
+      }
+
+      // 2. Find accepted wager tickets that haven't been closed (3 day timeout - apply dodge)
+      const acceptedWagers = await WagerTicket.find({
+        discordGuildId: guild.id,
+        channelId: { $ne: null },
+        status: 'open',
+        acceptedAt: { $ne: null } // Only tickets that were accepted
+      }).catch(() => []);
+
+      for (const ticket of acceptedWagers) {
+        if (isAcceptedTicketExpired(ticket)) {
+          try {
+            await applyAutoDodgeForAcceptedTicket(client, ticket, guild);
+          } catch (err) {
+            LoggerService.error(`[Auto-Dodge] Error processing accepted ticket ${ticket._id}:`, err);
           }
         }
       }
     } catch (err) {
-      LoggerService.error(`[Auto-Dodge] Error scanning guild ${guild.id}:`, err);
+      LoggerService.error(`[Auto-Close/Dodge] Error scanning guild ${guild.id}:`, err);
     }
   }
 }
 
 /**
- * Schedule automatic dodge for wager tickets open for more than 1 day (unaccepted)
+ * Schedule automatic close/dodge for wager tickets:
+ * - Unaccepted tickets: auto-close after 1 day (NO dodge)
+ * - Accepted tickets without game: auto-dodge after 3 days
  * Runs every hour to check for expired tickets
  * @param {import('discord.js').Client} client
  */
@@ -270,15 +367,15 @@ function scheduleAutoDodgeMonitor(client) {
 
   // Run once after 2 minutes (give time for bot to fully start)
   setTimeout(() => scanExpiredWagerTickets(client).catch(err => {
-    LoggerService.error('[Auto-Dodge] Scan error:', err);
+    LoggerService.error('[Auto-Close/Dodge] Scan error:', err);
   }), 2 * 60 * 1000);
 
   // Then run every hour
   setInterval(() => scanExpiredWagerTickets(client).catch(err => {
-    LoggerService.error('[Auto-Dodge] Scan error:', err);
+    LoggerService.error('[Auto-Close/Dodge] Scan error:', err);
   }), intervalMs);
 
-  LoggerService.info('[Auto-Dodge] Monitor scheduled - checking every hour for tickets open > 1 day (unaccepted)');
+  LoggerService.info('[Auto-Close/Dodge] Monitor scheduled - checking every hour (unaccepted: close after 1 day, accepted without game: dodge after 3 days)');
 }
 
 module.exports = {
