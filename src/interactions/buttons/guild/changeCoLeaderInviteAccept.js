@@ -101,15 +101,35 @@ async function handle(interaction) {
             }
         );
 
-        // Step 2: Add new member
+        // Step 2: Add new member (user is not currently in the guild)
+        // MongoDB doesn't allow $set with array filters and $push on the same array in one operation.
+        // So we split this into two steps:
         if (!updatedGuild) {
-            updatedGuild = await Guild.findOneAndUpdate(
+            // Step 2a: First, demote any existing co-leader to member
+            await Guild.updateOne(
                 {
                     ...baseQuery,
                     "members.userId": { $ne: userId }
                 },
                 {
-                    $set: { "members.$[old].role": "membro" },
+                    $set: { "members.$[old].role": "membro" }
+                },
+                {
+                    arrayFilters: [
+                        { "old.role": "vice-lider" }
+                    ]
+                }
+            );
+
+            // Step 2b: Now add the new user as co-leader
+            updatedGuild = await Guild.findOneAndUpdate(
+                {
+                    _id: guildId,
+                    "members.userId": { $ne: userId },
+                    // Ensure no co-leader exists after the demotion
+                    "members": { $not: { $elemMatch: { role: 'vice-lider' } } }
+                },
+                {
                     $push: {
                         members: {
                             userId,
@@ -120,10 +140,7 @@ async function handle(interaction) {
                     }
                 },
                 {
-                    new: true,
-                    arrayFilters: [
-                        { "old.role": "vice-lider" }
-                    ]
+                    new: true
                 }
             );
         }
