@@ -4,10 +4,10 @@ const WagerTicket = require('../../../models/wager/WagerTicket');
 const { getOrCreateRoleConfig } = require('../../../utils/misc/roleConfig');
 const { sendTranscriptToLogs } = require('../../../utils/tickets/transcript');
 const { sendWagerDodgeLog } = require('../../../utils/tickets/wagerDodgeLog');
-const { buildWagerCloseButtonRow } = require('../../../utils/tickets/closeButtons');
 const { isDatabaseConnected } = require('../../../config/database');
 const LoggerService = require('../../../services/LoggerService');
 const { unlockChannelForUsers } = require('../../../utils/wager/wagerChannelManager');
+const { sendLog } = require('../../../utils/core/logger');
 
 /**
  * Apply wager dodge after confirmation
@@ -79,7 +79,9 @@ async function handle(interaction) {
       }
     }
 
-    ticket.status = 'dodge';
+    ticket.status = 'closed';
+    ticket.closedByUserId = interaction.user.id;
+    ticket.closedAt = new Date();
     ticket.dodgedByUserId = dodgerUserId;
     await ticket.save();
 
@@ -110,8 +112,8 @@ async function handle(interaction) {
       if (ch && sourceMessageId) {
         try {
           const msg = await ch.messages.fetch(sourceMessageId).catch(() => null);
-          if (msg) await msg.edit({ components: [] }).catch(() => {});
-        } catch (_) {}
+          if (msg) await msg.edit({ components: [] }).catch(() => { });
+        } catch (_) { }
       }
       if (ch && ch.type === ChannelType.GuildText) {
         const { container, attachment } = await buildWagerDodgeEmbed(
@@ -121,14 +123,11 @@ async function handle(interaction) {
           new Date()
         );
 
-        // Add close button to the container
-        container.addActionRowComponents(buildWagerCloseButtonRow(ticket._id));
-
-        // Send container with attachment in same message for attachment:// to work
+        // Send dodge notification with auto-close message
         await ch.send({
+          content: '🧹 This ticket will be closed automatically in 10 seconds...',
           components: [container],
           flags: MessageFlags.IsComponentsV2,
-          content: 'Use the button below to close the ticket.',
           files: attachment ? [attachment] : []
         });
 
@@ -140,9 +139,27 @@ async function handle(interaction) {
             `Wager Ticket ${ticket._id} marked as dodge by <@${dodgerUserId}>`,
             ticket
           );
-        } catch (_) {}
+        } catch (_) { }
+
+        // Log the closure
+        try {
+          await sendLog(
+            interaction.guild,
+            'Wager Ticket Closed (Dodge)',
+            `Wager Ticket ${ticket._id} • Dodger: <@${dodgerUserId}> • Closed by: <@${interaction.user.id}>`
+          );
+        } catch (_) { }
+
+        // Delete the channel after a short delay
+        setTimeout(async () => {
+          try {
+            await ch.delete('Wager ticket auto-closed after dodge marked.');
+          } catch (err) {
+            LoggerService.warn('Failed to delete wager ticket channel:', { error: err?.message });
+          }
+        }, 10000); // 10 seconds delay
       }
-    } catch (_) {}
+    } catch (_) { }
 
     // Send log to wager dodge channel (always attempt this)
     try {
@@ -157,7 +174,7 @@ async function handle(interaction) {
     }
 
     try {
-      return await interaction.editReply({ content: '✅ Dodge recorded.' });
+      return await interaction.editReply({ content: '✅ Dodge recorded. Ticket will close automatically.' });
     } catch (e) {
       const code = e?.code ?? e?.rawError?.code;
       if (code !== 10008) throw e;

@@ -179,8 +179,8 @@ async function applyAutoDodgeForAcceptedTicket(client, ticket, guild) {
   const dodgerUserId = ticket.opponentUserId;
   const opponentId = ticket.initiatorUserId;
 
-  // Mark ticket as dodge
-  ticket.status = 'dodge';
+  // Mark ticket as closed (with dodge marker)
+  ticket.status = 'closed';
   ticket.dodgedByUserId = dodgerUserId;
   ticket.closedAt = new Date();
   ticket.closedByUserId = client.user.id; // Bot is the closer
