@@ -1,5 +1,4 @@
-const { PermissionFlagsBits, MessageFlags, ActionRowBuilder, ButtonBuilder, ComponentType } = require('discord.js');
-const { buildWarCloseButtonRow } = require('../../../utils/tickets/closeButtons');
+const { PermissionFlagsBits, MessageFlags, ActionRowBuilder, ButtonBuilder, ComponentType, ChannelType } = require('discord.js');
 const { replyEphemeral } = require('../../../utils/core/reply');
 const War = require('../../../models/war/War');
 const Guild = require('../../../models/guild/Guild');
@@ -9,6 +8,7 @@ const { getFirstActiveRegion } = require('../../../models/statics/guildStatics')
 const LoggerService = require('../../../services/LoggerService');
 const { ContainerBuilder, TextDisplayBuilder } = require('@discordjs/builders');
 const { colors, emojis } = require('../../../config/botConfig');
+const { sendTranscriptToLogs } = require('../../../utils/tickets/transcript');
 
 /**
  * Disable buttons on the current interaction
@@ -188,23 +188,55 @@ async function handle(interaction) {
 
     war.status = 'finalizada';
     war.winnerGuildId = winner._id;
+    war.closedByUserId = interaction.user.id;
+    war.closedAt = new Date();
 
     await Promise.all([winner.save(), loser.save(), war.save()]);
 
     await confirmWarResultUI(interaction);
 
-    // Post to channel
-    try {
-      await interaction.channel.send({
-        content: `🏆 Winner declared: **${winner.name}**`,
-        components: [buildWarCloseButtonRow(war._id)]
-      });
-    } catch (_) { }
+    // Post to channel and auto-close with transcript
+    const ch = interaction.guild.channels.cache.get(war.channelId);
+    if (ch && ch.type === ChannelType.GuildText) {
+      try {
+        await ch.send({
+          content: `🏆 Winner declared: **${winner.name}**\n\n🧹 This ticket will be closed automatically in 10 seconds...`
+        });
+      } catch (_) { }
+
+      // Generate transcript before deleting the channel
+      try {
+        await sendTranscriptToLogs(
+          interaction.guild,
+          ch,
+          `War ${war._id} - Winner declared: ${winner.name} by ${interaction.user.tag}`,
+          war
+        );
+      } catch (_) { }
+
+      // Log the closure
+      try {
+        await sendLog(
+          interaction.guild,
+          'War Ticket Closed (Auto)',
+          `War ${war._id} • Winner: ${winner.name} • Declared by: <@${interaction.user.id}>`
+        );
+      } catch (_) { }
+
+      // Delete the channel after a short delay
+      setTimeout(async () => {
+        try {
+          await ch.delete('War ticket auto-closed after winner declared.');
+        } catch (err) {
+          LoggerService.warn('Failed to delete war ticket channel:', { error: err?.message });
+        }
+      }, 10000); // 10 seconds delay
+    }
 
     await logWarResult(interaction, war, winner, loser, warRegion, guildA, guildB);
 
     return interaction.followUp({
-      content: '✅ Result saved successfully.',
+      content: '✅ Result saved successfully. Ticket will close automatically.',
       flags: MessageFlags.Ephemeral
     });
   } catch (error) {

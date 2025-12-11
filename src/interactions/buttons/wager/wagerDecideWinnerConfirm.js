@@ -1,12 +1,13 @@
-const { PermissionFlagsBits, MessageFlags, ActionRowBuilder, ButtonBuilder, ComponentType } = require('discord.js');
+const { PermissionFlagsBits, MessageFlags, ActionRowBuilder, ButtonBuilder, ComponentType, ChannelType } = require('discord.js');
 const WagerTicket = require('../../../models/wager/WagerTicket');
 const { getOrCreateRoleConfig } = require('../../../utils/misc/roleConfig');
 const WagerService = require('../../../services/WagerService');
-const { buildWagerCloseButtonRow } = require('../../../utils/tickets/closeButtons');
 const { isDatabaseConnected } = require('../../../config/database');
 const LoggerService = require('../../../services/LoggerService');
 const { ContainerBuilder, TextDisplayBuilder } = require('@discordjs/builders');
 const { colors, emojis } = require('../../../config/botConfig');
+const { sendTranscriptToLogs } = require('../../../utils/tickets/transcript');
+const { sendLog } = require('../../../utils/core/logger');
 
 /**
  * Update the confirmation message to show success
@@ -148,32 +149,61 @@ async function handle(interaction) {
 
     const embed = await recordWagerResult(ticket, winnerKey, interaction);
 
-    // Close ticket
+    // Close ticket and update metadata
     ticket.status = 'closed';
+    ticket.closedByUserId = interaction.user.id;
+    ticket.closedAt = new Date();
     await ticket.save();
 
     await updateConfirmationUI(interaction);
 
-    // Post in channel
+    // Post result in channel and auto-close with transcript
     const ch = interaction.guild.channels.cache.get(ticket.channelId);
-    if (ch) {
+    if (ch && ch.type === ChannelType.GuildText) {
       try {
         const resultMsg = ticket.is2v2
-          ? `✅ Result recorded by <@${interaction.user.id}>. Points applied to all 4 players.`
-          : `✅ Result recorded by <@${interaction.user.id}>. Points applied.`;
+          ? `✅ Result recorded by <@${interaction.user.id}>. Points applied to all 4 players.\n\n🧹 This ticket will be closed automatically in 10 seconds...`
+          : `✅ Result recorded by <@${interaction.user.id}>. Points applied.\n\n🧹 This ticket will be closed automatically in 10 seconds...`;
 
-        const closeButtonRow = buildWagerCloseButtonRow(ticket._id);
         await ch.send({
           content: resultMsg,
-          components: [embed, closeButtonRow],
+          components: [embed],
           flags: MessageFlags.IsComponentsV2
         });
       } catch (_) { }
+
+      // Generate transcript before deleting the channel
+      try {
+        await sendTranscriptToLogs(
+          interaction.guild,
+          ch,
+          `Wager Ticket ${ticket._id} - Winner declared by ${interaction.user.tag}`,
+          ticket
+        );
+      } catch (_) { }
+
+      // Log the closure
+      try {
+        await sendLog(
+          interaction.guild,
+          'Wager Ticket Closed (Auto)',
+          `Wager Ticket ${ticket._id} • Winner declared by: <@${interaction.user.id}>`
+        );
+      } catch (_) { }
+
+      // Delete the channel after a short delay
+      setTimeout(async () => {
+        try {
+          await ch.delete('Wager ticket auto-closed after winner declared.');
+        } catch (err) {
+          LoggerService.warn('Failed to delete wager ticket channel:', { error: err?.message });
+        }
+      }, 10000); // 10 seconds delay
     }
 
     const confirmMsg = ticket.is2v2
-      ? '✅ Result applied. Points updated for all 4 players.'
-      : '✅ Result applied. Points updated for both players.';
+      ? '✅ Result applied. Points updated for all 4 players. Ticket will close automatically.'
+      : '✅ Result applied. Points updated for both players. Ticket will close automatically.';
     return interaction.followUp({ content: confirmMsg, flags: MessageFlags.Ephemeral });
 
   } catch (error) {
