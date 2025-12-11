@@ -63,7 +63,7 @@ module.exports = {
       });
     }
 
-    // Auto-dodge monitor: applies dodge to wager tickets open for more than 3 days
+    // Auto-dodge monitor: applies dodge to wager tickets open for more than 1 day
     // The challenged user (opponent) receives the dodge automatically
     try {
       scheduleAutoDodgeMonitor(client);
