@@ -34,7 +34,8 @@ async function handle(interaction) {
         `**Support:** ${cfg.supportRoleIds?.map(id => `<@&${id}>`).join(', ') || '—'}\n` +
         `**Admin Support:** ${cfg.adminSupportRoleIds?.map(id => `<@&${id}>`).join(', ') || '—'}\n` +
         `**Registration Access:** ${cfg.registrationAccessRoleIds?.map(id => `<@&${id}>`).join(', ') || '—'}\n` +
-        `**No Wagers:** ${cfg.noWagersRoleId ? `<@&${cfg.noWagersRoleId}>` : '—'}`
+        `**No Wagers:** ${cfg.noWagersRoleId ? `<@&${cfg.noWagersRoleId}>` : '—'}\n` +
+        `**Blacklist:** ${cfg.blacklistRoleId ? `<@&${cfg.blacklistRoleId}>` : '—'}`
       );
 
     container.addTextDisplayComponents(titleText, descText);
@@ -98,7 +99,12 @@ async function handle(interaction) {
           .setLabel('No Wagers Role')
           .setDescription('Role that restricts users from creating wagers')
           .setValue('noWagers')
-          .setEmoji('🚫')
+          .setEmoji('🚫'),
+        new StringSelectMenuOptionBuilder()
+          .setLabel('Blacklist Role')
+          .setDescription('Role that restricts users from using any wager/war features')
+          .setValue('blacklist')
+          .setEmoji('⛔')
       ]);
 
     const row = new ActionRowBuilder().addComponents(roleSelect);

@@ -64,6 +64,12 @@ async function handle(interaction) {
         placeholder: 'Select the no wagers role',
         minValues: 1,
         maxValues: 1
+      },
+      blacklist: {
+        customId: 'config:roles:singleSelect:blacklistRoleId',
+        placeholder: 'Select the blacklist role',
+        minValues: 1,
+        maxValues: 1
       }
     };
 

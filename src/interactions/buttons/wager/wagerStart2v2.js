@@ -15,6 +15,15 @@ const { colors, emojis } = require('../../../config/botConfig');
  */
 async function handle(interaction) {
   try {
+    const { getOrCreateRoleConfig } = require('../../../utils/misc/roleConfig');
+    const roleCfg = await getOrCreateRoleConfig(interaction.guild.id);
+    if (roleCfg.blacklistRoleId && interaction.member.roles.cache.has(roleCfg.blacklistRoleId)) {
+      return interaction.reply({
+        content: '❌ You are blacklisted from using wager and war systems.',
+        flags: MessageFlags.Ephemeral
+      });
+    }
+
     const container = new ContainerBuilder();
     const primaryColor = typeof colors.primary === 'string'
       ? parseInt(colors.primary.replace('#', ''), 16)

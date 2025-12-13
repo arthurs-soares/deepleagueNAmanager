@@ -23,6 +23,12 @@ const REGIONS = [
 async function handle(interaction) {
   try {
     const cfg = await getOrCreateRoleConfig(interaction.guild.id);
+    if (cfg.blacklistRoleId && interaction.member.roles.cache.has(cfg.blacklistRoleId)) {
+      return replyEphemeral(interaction, {
+        content: '❌ You are blacklisted from using wager and war systems.',
+      });
+    }
+
     const leaderId = cfg.leadersRoleId;
     const coLeaderId = cfg.coLeadersRoleId;
     const managerId = cfg.managersRoleId;

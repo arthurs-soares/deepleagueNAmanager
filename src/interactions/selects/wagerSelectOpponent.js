@@ -13,6 +13,19 @@ async function handle(interaction) {
     // War wagers removed: single option for all users
     const label = '📨 Create Wager Ticket';
 
+    const { getOrCreateRoleConfig } = require('../../utils/misc/roleConfig');
+    const roleCfg = await getOrCreateRoleConfig(interaction.guild.id);
+
+    if (roleCfg.blacklistRoleId) {
+      const opponentMember = await interaction.guild.members.fetch(opponentId).catch(() => null);
+      if (opponentMember && opponentMember.roles.cache.has(roleCfg.blacklistRoleId)) {
+        return interaction.reply({
+          content: `❌ <@${opponentId}> is blacklisted from wagers.`,
+          flags: MessageFlags.Ephemeral
+        });
+      }
+    }
+
     const row = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
         .setCustomId(`wager:createTicket:${opponentId}`)

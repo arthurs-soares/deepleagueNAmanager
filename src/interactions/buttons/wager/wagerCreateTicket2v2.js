@@ -66,6 +66,11 @@ async function handle(interaction) {
           content: `❌ <@${allUserIds[i]}> has opted out of wagers.`
         });
       }
+      if (roleCfg?.blacklistRoleId && members[i]?.roles.cache.has(roleCfg.blacklistRoleId)) {
+        return interaction.editReply({
+          content: `❌ <@${allUserIds[i]}> is blacklisted from wagers.`
+        });
+      }
     }
 
     const settings = await getOrCreateServerSettings(guildId);
