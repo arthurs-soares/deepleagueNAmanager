@@ -24,6 +24,9 @@ const wagerTicketSchema = new mongoose.Schema({
   // Claim tracking - only the hoster who claimed can manage the ticket
   claimedAt: { type: Date, default: null },
   claimedByUserId: { type: String, default: null },
+  // Inactivity tracking
+  lastInactivityWarningAt: { type: Date, default: null },
+  inactivityReactivatedAt: { type: Date, default: null },
 }, { timestamps: true });
 
 wagerTicketSchema.index({ discordGuildId: 1, channelId: 1 });

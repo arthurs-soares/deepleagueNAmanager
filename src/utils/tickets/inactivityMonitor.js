@@ -161,7 +161,12 @@ function isAcceptedTicketExpired(ticket) {
   if (ticket.status !== 'open') return false;
 
   const acceptedAt = new Date(ticket.acceptedAt).getTime();
-  return Date.now() - acceptedAt >= THREE_DAYS_MS;
+  const reactivatedAt = ticket.inactivityReactivatedAt ? new Date(ticket.inactivityReactivatedAt).getTime() : 0;
+
+  // Use the latest of acceptedAt or reactivatedAt
+  const refTime = Math.max(acceptedAt, reactivatedAt);
+
+  return Date.now() - refTime >= THREE_DAYS_MS;
 }
 
 /**
@@ -307,6 +312,69 @@ async function autoCloseUnacceptedTicket(client, ticket, guild) {
 }
 
 /**
+ * Check if an accepted wager ticket is approaching expiration (2 days passed)
+ * @param {Object} ticket
+ * @returns {boolean}
+ */
+function isWagerTicketInactiveForWarning(ticket) {
+  if (!ticket || !ticket.acceptedAt) return false;
+  if (ticket.status !== 'open') return false;
+
+  // If already warned, don't warn again (it will be reset if extended)
+  if (ticket.lastInactivityWarningAt) return false;
+
+  const acceptedAt = new Date(ticket.acceptedAt).getTime();
+  const reactivatedAt = ticket.inactivityReactivatedAt ? new Date(ticket.inactivityReactivatedAt).getTime() : 0;
+
+  const refTime = Math.max(acceptedAt, reactivatedAt);
+  const TWO_DAYS_MS = 2 * 24 * 60 * 60 * 1000;
+
+  return Date.now() - refTime >= TWO_DAYS_MS;
+}
+
+/**
+ * Send 24h warning for wager ticket auto-dodge (at 48h mark)
+ * @param {import('discord.js').Client} client
+ * @param {Object} ticket
+ * @param {import('discord.js').Guild} guild
+ */
+async function sendWagerInactivityWarning(client, ticket, guild) {
+  const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+  const channel = guild.channels.cache.get(ticket.channelId);
+
+  if (!channel) return;
+
+  try {
+    const extendButton = new ButtonBuilder()
+      .setCustomId(`wager:extend:${ticket._id}`)
+      .setStyle(ButtonStyle.Primary)
+      .setLabel('Extend Ticket (+3 days)')
+      .setEmoji('⏰');
+
+    const actionRow = new ActionRowBuilder().addComponents(extendButton);
+
+    const warningMessage =
+      `⚠️ **Wager Ticket Inactivity Warning**\n\n` +
+      `This wager ticket has been open for **48 hours** without a result.\n\n` +
+      `If no result is recorded within the next **24 hours**, the ticket will automatically **Dodge** (applied to the opponent).\n\n` +
+      `If you are still playing or scheduling, please click the button below to extend the timer.`;
+
+    await channel.send({
+      content: warningMessage,
+      components: [actionRow]
+    });
+
+    ticket.lastInactivityWarningAt = new Date();
+    await ticket.save();
+
+    LoggerService.info(`[Wager Warning] Inactivity warning sent for ticket ${ticket._id}`);
+
+  } catch (err) {
+    LoggerService.error(`[Wager Warning] Error sending warning for ticket ${ticket._id}:`, err);
+  }
+}
+
+/**
  * Scan for wager tickets that are:
  * 1. Open for more than 1 day and NOT accepted (auto-close without dodge)
  * 2. Accepted but open for more than 3 days without game happening (apply auto-dodge)
@@ -349,6 +417,12 @@ async function scanExpiredWagerTickets(client) {
             await applyAutoDodgeForAcceptedTicket(client, ticket, guild);
           } catch (err) {
             LoggerService.error(`[Auto-Dodge] Error processing accepted ticket ${ticket._id}:`, err);
+          }
+        } else if (isWagerTicketInactiveForWarning(ticket)) {
+          try {
+            await sendWagerInactivityWarning(client, ticket, guild);
+          } catch (err) {
+            LoggerService.error(`[Auto-Warning] Error processing accepted ticket ${ticket._id}:`, err);
           }
         }
       }

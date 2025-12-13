@@ -37,6 +37,7 @@ function resolveButtonHandler(customId) {
   // Wager
   if (customId === 'wager:start') return '../interactions/buttons/wager/wagerStart';
   if (customId === 'wager:start2v2') return '../interactions/buttons/wager/wagerStart2v2';
+  if (customId.startsWith('wager:extend:')) return '../interactions/buttons/wager/wagerExtendTicket';
   if (customId.startsWith('wager:createTicket2v2:')) return '../interactions/buttons/wager/wagerCreateTicket2v2';
   if (customId.startsWith('wager:createTicket:')) return '../interactions/buttons/wager/wagerCreateTicket';
   if (customId.startsWith('wager:closeTicket:confirm:')) return '../interactions/buttons/wager/wagerCloseTicketConfirm';
