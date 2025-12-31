@@ -1,5 +1,7 @@
 const WagerTicket = require('../../models/wager/WagerTicket');
 
+const MAX_OPEN_WAGER_TICKETS = 3;
+
 /**
  * Count open wager tickets for a user (as initiator, opponent, or teammate)
  * @param {string} guildId - Discord guild ID
@@ -21,4 +23,4 @@ async function countOpenWagerTickets(guildId, userId) {
   return count;
 }
 
-module.exports = { countOpenWagerTickets };
+module.exports = { countOpenWagerTickets, MAX_OPEN_WAGER_TICKETS };

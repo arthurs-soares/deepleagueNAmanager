@@ -23,6 +23,7 @@ const { sendAndPin } = require('../../../utils/tickets/pinUtils');
 const WagerTicket = require('../../../models/wager/WagerTicket');
 const LoggerService = require('../../../services/LoggerService');
 const { colors, emojis } = require('../../../config/botConfig');
+const { countOpenWagerTickets, MAX_OPEN_WAGER_TICKETS } = require('../../../utils/wager/wagerTicketLimits');
 
 /**
  * Check if a member has the no-wagers role
@@ -69,6 +70,19 @@ async function handle(interaction) {
       if (roleCfg?.blacklistRoleIds?.some(id => members[i]?.roles.cache.has(id))) {
         return interaction.editReply({
           content: `❌ <@${allUserIds[i]}> is blacklisted from wagers.`
+        });
+      }
+    }
+
+    // Check ticket limits for all participants
+    for (let i = 0; i < allUserIds.length; i++) {
+      const openTickets = await countOpenWagerTickets(guildId, allUserIds[i]);
+      if (openTickets >= MAX_OPEN_WAGER_TICKETS) {
+        const isSelf = allUserIds[i] === initiatorId;
+        return interaction.editReply({
+          content: isSelf
+            ? `❌ You already have **${MAX_OPEN_WAGER_TICKETS}** open wager tickets. Please close one before creating another.`
+            : `❌ <@${allUserIds[i]}> already has **${MAX_OPEN_WAGER_TICKETS}** open wager tickets.`
         });
       }
     }
